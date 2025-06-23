@@ -240,6 +240,8 @@ namespace GymMaintenance.Controllers
             return _ibiointerface.GetAllLoginlog();
         }
 
+
+
     }
 }
  

@@ -435,6 +435,26 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
 
+        public List<LoginModel> GetAllLoginlog()
+        {
+            var result = (from a in _bioContext.Login
+                          select new
+                          {
+                              a.Role,
+                              a.LoginId,
+                              a.UserName,
+                              a.Password
+                          }).AsEnumerable().Select(x => new LoginModel
+                          {
+                              LoginId = x.LoginId,
+                              Role = x.Role,
+                              UserName = x.UserName,
+                              Password = x.Password
+                          }).ToList();
+            return result;
+        }
+
+
 
     }
 }
