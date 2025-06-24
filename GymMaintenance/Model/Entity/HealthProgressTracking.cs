@@ -4,8 +4,8 @@ namespace GymMaintenance.Model.Entity
 {
     public class HealthProgressTracking
     {
-        [Key]
-        public int CandidateId { get; set; } 
+        [Key] 
+        public int CandidateId { get; set; }
 
         public string Name { get; set; }
         public decimal InitialWeight { get; set; }
@@ -13,5 +13,7 @@ namespace GymMaintenance.Model.Entity
         public decimal InitialBMI { get; set; }
         public decimal CurrentBMI { get; set; }
         public DateTime CurrentDate { get; set; }
+
+
     }
 }

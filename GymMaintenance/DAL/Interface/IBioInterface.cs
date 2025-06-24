@@ -1,6 +1,8 @@
 ﻿using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
+using GymMaintenance.Model.ViewModel;
+
 
 namespace GymMaintenance.DAL.Interface
 {
@@ -49,6 +51,30 @@ namespace GymMaintenance.DAL.Interface
         public bool DeleteByattendanceId(int id);
         #endregion 
        
+
+         public List<Login> GetAll();
+
+        #region EquipmentEnrollment
+        public EquipmentEnrollment AddEquipmentEnrollment(EquipmentEnrollment equipment);
+        public List<EquipmentEnrollmentModel> GetallEquipmentEnrollments();
+
+        public EquipmentEnrollmentModel GetEquipmentEnrollmentbyid(int id);
+        public EquipmentEnrollment deleteEquipmentbyid(int id);
+
+        #endregion
+
+
+        #region HealthProgressTracking
+        public HealthProgressTracking AddHealthProgressTracking(HealthProgressTracking healthProgressTracking);
+        public List<HealthProgressTrackingModel> GetallHealthProgressTrackings();
+
+        public HealthProgressTrackingModel GetbyidHealthProgressTracking(int id);
+        public HealthProgressTracking deleteHealthprogresstrackingbyid(int id);
+        #endregion
+
+
+
+
 
     }
 }

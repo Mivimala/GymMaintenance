@@ -19,5 +19,9 @@ namespace GymMaintenance.Data
         public DbSet<CandidateEnroll> CandidateEnroll { get; set; }
         public DbSet<AttendanceTable> AttendanceTable { get; set; }
 
+        public DbSet<EquipmentEnrollment> EquipmentEnrollment { get; set; }
+
+
+        public DbSet<HealthProgressTracking> HealthProgressTracking { get; set; }   
     }
 }
