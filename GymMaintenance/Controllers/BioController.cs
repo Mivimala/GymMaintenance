@@ -19,59 +19,118 @@ namespace GymMaintenance.Controllers
             _ibiointerface = bioInterface;
         }
 
+        #region Login
 
+        [HttpGet]
+        public List<LoginModel> GetAllLoginlog()
+        {
+            return _ibiointerface.GetAllLogin();
+        }
 
-        [HttpPost("AddLogin")]
+        [HttpGet("{id:int}")]
+
+        public ActionResult<LoginModel> GetLoginById(int id)
+        {
+            var result = _ibiointerface.GetLoginById(id);
+
+            return result;
+        }
+
+        [HttpPost]
+
         public Login Addlog(Login login)
         {
             return _ibiointerface.Addlog(login);
         }
-
+       
         [HttpDelete("{id:int}")]
         public IActionResult DeleteById(int id)
         {
             var result = _ibiointerface.DeleteById(id);
-            if (!result)
-                return NotFound($"No login found with ID = {id}");
+            return Ok();
+        }
+        #endregion
 
-            return Ok($"Login with ID = {id} deleted successfully");
+
+        #region FingerPrint
+
+        [HttpGet]
+        public List<FingerPrintModel> GetAllfingerprint()
+        {
+            return _ibiointerface.GetAllfingerprint();
         }
 
+        [HttpGet("{id:int}")]
 
-        [HttpPost("AddFingerprint")]
+        public ActionResult<FingerPrintModel> GetAllfingerprintbyID(int id)
+        {
+            var result = _ibiointerface.GetAllfingerprintbyID(id);
+
+            return result;
+        }
+
+        [HttpPost]
         public FingerPrint AddFingerPrint(FingerPrint fingerprint)
         {
             return _ibiointerface.AddFingerPrint(fingerprint);
         }
 
-        [HttpDelete("fingerprint/{id:int}")]
+        [HttpDelete]
         public IActionResult DeleteByfingerprintId(int id)
         {
             var result = _ibiointerface.DeleteByfingerprintId(id);
-            if (!result)
-                return NotFound($"No login found with ID = {id}");
+            return Ok();
+        }
+        #endregion
 
-            return Ok($"Login with ID = {id} deleted successfully");
+        #region Payment
+        [HttpGet]
+        public List<PaymentModel> GetAllpayment()
+        {
+            return _ibiointerface.GetAllpayment();
         }
 
+        [HttpGet]
 
-        [HttpPost("Addpayment")]
+        public ActionResult<PaymentModel> GetpaymentbyId(int id)
+        {
+            var result = _ibiointerface.GetpaymentbyId(id);
+
+            return result;
+        }
+
+        [HttpPost]
         public Payment Addpayment(Payment pymnnt)
         {
             return _ibiointerface.Addpayment(pymnnt);
         }
 
-        [HttpDelete("payment/{id:int}")]
+        [HttpDelete]
         public IActionResult DeleteBypymntId(int id)
         {
             var result = _ibiointerface.DeleteBypymntId(id);
-            if (!result)
-                return NotFound($"No login found with ID = {id}");
+            return Ok();
+        }
+        #endregion
 
-            return Ok($"Login with ID = {id} deleted successfully");
+
+        #region Trainer
+
+        [HttpGet]
+        public List<TrainerEnrollmentModel> GetAlltrainer()
+        {
+            return _ibiointerface.GetAlltrainer();
         }
 
-       
+        [HttpGet("{id:int}")]
+
+        public ActionResult<TrainerEnrollmentModel> GetAlltrainerbyID(int id)
+        {
+            var result = _ibiointerface.GetAlltrainerbyID(id);
+
+            return result;
+        }
+
         [HttpPost("Addtrainer")]
         public TrainerEnrollment AddOrUpdateTrainer(TrainerEnrollment trainer)
         {
@@ -87,107 +146,17 @@ namespace GymMaintenance.Controllers
 
             return Ok($"Login with ID = {id} deleted successfully");
         }
+        #endregion
 
 
-
-        [HttpPost("Addcandidate")]
-        public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate)
-        {
-            return _ibiointerface.AddOrUpdateCandidate(candidate);
-        }
-
-        [HttpDelete("candidate/{id:int}")]
-        public IActionResult DeleteBycandidateId(int id)
-        {
-            var result = _ibiointerface.DeleteBycandidateId(id);
-            if (!result)
-                return NotFound($"No login found with ID = {id}");
-
-            return Ok($"Login with ID = {id} deleted successfully");
-        }
-
-       
-
-        [HttpPost("Addattendance")]
-        public AttendanceTable AddOrUpdateAttendance(AttendanceTable attendance)
-        {
-            return _ibiointerface.AddOrUpdateAttendance(attendance);
-        }
-
-        [HttpDelete("attendance/{id:int}")]
-        public IActionResult DeleteByattendanceId(int id)
-        {
-            var result = _ibiointerface.DeleteByattendanceId(id);
-            if (!result)
-                return NotFound($"No login found with ID = {id}");
-
-            return Ok($"Login with ID = {id} deleted successfully");
-        }
-
-
-        [HttpGet]
-        public List<LoginModel> GetAllLoginlog()
-        {
-            return _ibiointerface.GetAllLogin();
-        }
-        
+        #region Candidate
         [HttpGet]
         public List<CandidateEnrollModel> GetAllcandidate()
         {
             return _ibiointerface.GetAllcandidate();
         }
+
         [HttpGet]
-        public List<TrainerEnrollmentModel> GetAlltrainer()
-        {
-            return _ibiointerface.GetAlltrainer();
-        }
-        [HttpGet]
-        public List<AttendanceTableModel> GetAllAttendance()
-        {
-            return _ibiointerface.GetAllAttendance();
-        }
-        [HttpGet]
-        public List<PaymentModel> GetAllpayment()
-        {
-            return _ibiointerface.GetAllpayment();
-        }
-
-        [HttpGet("{id:int}")]
-
-        public ActionResult<LoginModel> GetLoginById(int id)
-        {
-            var result = _ibiointerface.GetLoginById(id);
-
-            return result;
-        }
-
-        [HttpGet("{id:int}")]
-
-        public ActionResult<FingerPrintModel> GetAllfingerprintbyID(int id)
-        {
-            var result = _ibiointerface.GetAllfingerprintbyID(id);
-
-            return result;
-        }
-        [HttpGet("{id:int}")]
-
-        public ActionResult<PaymentModel> GetAllpaymentbyId(int id)
-        {
-            var result = _ibiointerface.GetAllpaymentbyId(id);
-
-            return result;
-        }
-
-       
-        [HttpGet("{id:int}")]
-
-        public ActionResult<TrainerEnrollmentModel> GetAlltrainerbyID(int id)
-        {
-            var result = _ibiointerface.GetAlltrainerbyID(id);
-
-            return result;
-        }
-        [HttpGet("{id:int}")]
 
         public ActionResult<CandidateEnrollModel> GetAllcandidatebyID(int id)
         {
@@ -195,7 +164,29 @@ namespace GymMaintenance.Controllers
 
             return result;
         }
-        [HttpGet("{id:int}")]
+
+        [HttpPost]
+        public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate)
+        {
+            return _ibiointerface.AddOrUpdateCandidate(candidate);
+        }
+
+        [HttpDelete]
+        public IActionResult DeleteBycandidateId(int id)
+        {
+            var result = _ibiointerface.DeleteBycandidateId(id);
+            return Ok();
+        }
+        #endregion
+
+        #region Attendance
+
+        [HttpGet]
+        public List<AttendanceTableModel> GetAllAttendance()
+        {
+            return _ibiointerface.GetAllAttendance();
+        }
+        [HttpGet]
 
         public ActionResult<AttendanceTableModel> GetAllAttendancebyID(int id)
         {
@@ -204,10 +195,42 @@ namespace GymMaintenance.Controllers
             return result;
         }
 
+        [HttpPost]
+        public AttendanceTable AddOrUpdateAttendance(AttendanceTable attendance)
+        {
+            return _ibiointerface.AddOrUpdateAttendance(attendance);
+        }
+
+        [HttpDelete]
+        public IActionResult DeleteByattendanceId(int id)
+        {
+            var result = _ibiointerface.DeleteByattendanceId(id);
+            return Ok();
+        }
+
+        #endregion
+
+
 
         #region EquipmentEnrollment
 
-        [HttpPost("AddEnrollequipment")]
+        [HttpGet]
+        public List<EquipmentEnrollmentModel> GetallEquipmentEnrollments()
+        {
+            return _ibiointerface.GetallEquipmentEnrollments();
+
+        }
+
+        [HttpGet]
+
+        public ActionResult<EquipmentEnrollmentModel> GetEquipmentEnrollmentbyid(int id)
+        {
+            var result = _ibiointerface.GetEquipmentEnrollmentbyid(id);
+            return result;
+        }
+
+
+        [HttpPost]
 
         public EquipmentEnrollment AddequipmentEnrollment( EquipmentEnrollment equipment)
         {
@@ -216,49 +239,20 @@ namespace GymMaintenance.Controllers
         }
 
 
-        [HttpGet("getallequipmentenrollments")]
-        public List<EquipmentEnrollmentModel> GetallEquipmentEnrollments ()
-        {
-            return _ibiointerface.GetallEquipmentEnrollments();
-
-        }
-
-        [HttpGet("{id}")]
-
-        public ActionResult<EquipmentEnrollmentModel> GetEquipmentEnrollmentbyid (int id)
-        {
-            var result =_ibiointerface.GetEquipmentEnrollmentbyid(id);
-            if (result == null)
-            {
-                return NotFound();
-            }
-            return result;
-        }
-
-        [HttpDelete("DeleteEquipmentEnrollmentbyid{id}")]
+        [HttpDelete]
 
         public ActionResult<EquipmentEnrollment> DeleteEquipmentEnrollmentbyid(int id)
         {
             var result = _ibiointerface.deleteEquipmentbyid(id);
-
             return result;
         }
         #endregion
 
 
 
-
-
-
         #region HealthProgressTracking
 
-        [HttpPost("AddHealthProgressTracking")]
-        public HealthProgressTracking Addhealthprogresstracking(HealthProgressTracking healthProgress)
-        {
-            var result= _ibiointerface.AddHealthProgressTracking(healthProgress);
-            return result;
-        }
-        [HttpGet("Getallhealthprogresstracking")]
+        [HttpGet]
 
         public List<HealthProgressTrackingModel> GetallHealthProgressTrackings()
         {
@@ -267,28 +261,64 @@ namespace GymMaintenance.Controllers
 
         }
 
-        [HttpGet("getbyidhealthprogress{id}")]
+        [HttpGet]
 
-        public ActionResult <HealthProgressTrackingModel> GetbyidHealthProgressTracking (int id)
+        public ActionResult<HealthProgressTrackingModel> GetbyidHealthProgressTracking(int id)
         {
-            var result=_ibiointerface.GetbyidHealthProgressTracking(id);
-
+            var result = _ibiointerface.GetbyidHealthProgressTracking(id);
             return result;
         }
 
-        [HttpDelete("deleteHealthprogresstrackingbyid{id}")]
+        [HttpPost]
+        public HealthProgressTracking Addhealthprogresstracking(HealthProgressTracking healthProgress)
+        {
+            var result= _ibiointerface.AddHealthProgressTracking(healthProgress);
+            return result;
+        }
+       
+
+        [HttpDelete]
 
         public ActionResult <HealthProgressTracking> deleteHealthprogresstrackingbyid(int id)
         {
             var result=_ibiointerface.deleteHealthprogresstrackingbyid(id);
-
             return result;
         }
 
         #endregion
+        #region ServiceMaster
+        [HttpGet]
+
+        public List<ServiceMaster> GetAllServiceMaster()
+        {
+            var result = _ibiointerface.GetAllServiceMaster();
+            return result;
+
+        }
+        [HttpGet]
+
+        public ActionResult<ServiceMaster> GetServiceMasterbyID(int id)
+        {
+            var result = _ibiointerface.GetServiceMasterbyID(id);
+            return result;
+        }
+        [HttpPost]
+        public ServiceMaster AddOrUpdateServiceMaster(ServiceMaster service)
+        {
+            var result = _ibiointerface.AddOrUpdateServiceMaster(service);
+            return result;
+        }
 
 
+        [HttpDelete]
 
+        public ActionResult<ServiceMaster> DeleteServiceMasterbyId(int id)
+        {
+            var result = _ibiointerface.DeleteServiceMasterbyId(id);
+            return Ok();
+        }
+
+        #endregion
 
     }
 }

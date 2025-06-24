@@ -501,8 +501,8 @@ namespace GymMaintenance.DAL.Services
                               MemmberId = x.MemmberId,
                               Name = x.Name,
                               MobileNumber = x.MobileNumber,
-                              Service = x.Service,
-                              Package = x.Package,
+                              ServiceId = x.Service,
+                              Plan = x.Package,
                               TimeSlot = x.TimeSlot,
                               PlanStartingDate = x.PlanStartingDate,
                               PlanExpiringDate = x.PlanExpiringDate,
@@ -517,7 +517,7 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
         
-        public PaymentModel GetAllpaymentbyId( int id)
+        public PaymentModel GetpaymentbyId( int id)
         {
             var result = (from a in _bioContext.Payment where a.MemmberId == id
                           select new PaymentModel
@@ -527,8 +527,8 @@ namespace GymMaintenance.DAL.Services
                               MemmberId = a.MemmberId,
                               Name = a.Name,
                               MobileNumber = a.MobileNumber,
-                              Service = a.Service,
-                              Package = a.Package,
+                              ServiceId = a.Service,
+                              Plan = a.Package,
                               TimeSlot = a.TimeSlot,
                               PlanStartingDate = a.PlanStartingDate,
                               PlanExpiringDate = a.PlanExpiringDate,
@@ -866,6 +866,7 @@ namespace GymMaintenance.DAL.Services
 
                           }).AsEnumerable().Select(x => new HealthProgressTrackingModel
                           {
+                              CandidateId=x.CandidateId,
                               Name = x.Name,
                               Height = x.Height,
                               InitialWeight = x.InitialWeight,
@@ -887,7 +888,7 @@ namespace GymMaintenance.DAL.Services
                           where he.CandidateId == id
                           select new HealthProgressTrackingModel
                           {
-                              
+                              CandidateId = he.CandidateId,
                               Name = he.Name,
                               Height = he.Height,
                               InitialWeight = he.InitialWeight,
@@ -921,6 +922,141 @@ namespace GymMaintenance.DAL.Services
 
 
 
+        #endregion
+
+        #region ImageUpload
+
+
+        public async Task<byte[]> ConvertToBytesAsync(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return null;
+
+            using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            return memoryStream.ToArray();
+        }
+        public async Task<CandidateEnroll> AddOrUpdateCandidateAsync(CandidateEnroll candidate)
+        {
+            var result = _bioContext.CandidateEnroll
+                .FirstOrDefault(c => c.CandidateId == candidate.CandidateId);
+
+            // Convert uploaded image to byte array
+            byte[] imageData = await ConvertToBytesAsync(candidate.PictureFile);
+
+            if (result == null)
+            {
+                result = new CandidateEnroll
+                {
+                    Name = candidate.Name,
+                    Gender = candidate.Gender,
+                    Weight = candidate.Weight,
+                    Height = candidate.Height,
+                    Waist = candidate.Waist,
+                    BMI = candidate.BMI,
+                    BloodGroup = candidate.BloodGroup,
+                    Age = candidate.Age,
+                    CurrentAddress = candidate.CurrentAddress,
+                    PermanentAddress = candidate.PermanentAddress,
+                    AadharNumber = candidate.AadharNumber,
+                    MobileNumber = candidate.MobileNumber,
+                    EmailId = candidate.EmailId,
+                    Profession = candidate.Profession,
+                    Picture = imageData,
+                    FingerPrintID = candidate.FingerPrintID,
+                    IsActive = candidate.IsActive,
+                    CreatedDate = candidate.CreatedDate
+                };
+
+                _bioContext.CandidateEnroll.Add(result);
+            }
+            else
+            {
+                result.Name = candidate.Name;
+                result.Gender = candidate.Gender;
+                result.Weight = candidate.Weight;
+                result.Height = candidate.Height;
+                result.Waist = candidate.Waist;
+                result.BMI = candidate.BMI;
+                result.BloodGroup = candidate.BloodGroup;
+                result.Age = candidate.Age;
+                result.CurrentAddress = candidate.CurrentAddress;
+                result.PermanentAddress = candidate.PermanentAddress;
+                result.AadharNumber = candidate.AadharNumber;
+                result.MobileNumber = candidate.MobileNumber;
+                result.EmailId = candidate.EmailId;
+                result.Profession = candidate.Profession;
+                result.FingerPrintID = candidate.FingerPrintID;
+                result.IsActive = candidate.IsActive;
+                result.CreatedDate = candidate.CreatedDate;
+
+                if (imageData != null)
+                {
+                    result.Picture = imageData;
+                }
+
+                _bioContext.CandidateEnroll.Update(result);
+            }
+
+            await _bioContext.SaveChangesAsync();
+            return result;
+        }
+
+
+
+
+        #endregion
+
+        #region ServiceMaster
+        public List<ServiceMaster> GetAllServiceMaster()
+        {
+            var result = _bioContext.ServiceMaster.ToList();
+            return result;
+
+        }
+
+        public ServiceMaster GetServiceMasterbyID(int id)
+        {
+            var result = _bioContext.ServiceMaster.FirstOrDefault(x => x.ServiceId == id);
+            return result;
+        }
+
+        public ServiceMaster AddOrUpdateServiceMaster(ServiceMaster service)
+        {
+
+            var result = _bioContext.ServiceMaster.Where(x => x.ServiceId == service.ServiceId).FirstOrDefault();
+            if(result== null)
+            {
+                result = new ServiceMaster();
+                result.ServiceId = service.ServiceId;
+                result.ServiceName = service.ServiceName;
+                result.PlanDuration = service.PlanDuration;
+                result.PlanAmount = service.PlanAmount;
+                result.CreatedDate = DateTime.UtcNow;
+                _bioContext.ServiceMaster.Add(result);
+
+            }
+            else
+            {
+                result.ServiceName = service.ServiceName;
+                result.PlanDuration = service.PlanDuration;
+                result.PlanAmount = service.PlanAmount;
+                result.UpdatedDate = DateTime.UtcNow;
+                _bioContext.ServiceMaster.Update(result);
+            }
+
+                _bioContext.SaveChanges();
+            return result;
+        }
+        public bool DeleteServiceMasterbyId(int id)
+        {
+            var entity = _bioContext.ServiceMaster.Find(id);
+            if (entity == null) return false;
+
+            _bioContext.ServiceMaster.Remove(entity);
+            _bioContext.SaveChanges();
+            return true;
+        }
         #endregion
     }
 }

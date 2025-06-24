@@ -17,7 +17,7 @@ namespace GymMaintenance.DAL.Interface
         #endregion
 
         #region FingerPrint
-         public List<FingerPrint> GetAllfingreprint();
+        public List<FingerPrintModel> GetAllfingerprint();
         public FingerPrintModel GetAllfingerprintbyID(int id);
         public FingerPrint AddFingerPrint(FingerPrint fingerprint);
         bool DeleteByfingerprintId(int id);
@@ -25,7 +25,7 @@ namespace GymMaintenance.DAL.Interface
 
         #region Payment
         public List<PaymentModel> GetAllpayment();
-        public PaymentModel GetAllpaymentbyId(int id);
+        public PaymentModel GetpaymentbyId(int id);
         public Payment Addpayment(Payment pymnnt);
         public bool DeleteBypymntId(int id);
         #endregion
@@ -72,7 +72,12 @@ namespace GymMaintenance.DAL.Interface
         public HealthProgressTracking deleteHealthprogresstrackingbyid(int id);
         #endregion
 
-
+        #region ServiceMaster
+        public List<ServiceMaster> GetAllServiceMaster();
+        public ServiceMaster GetServiceMasterbyID(int id);
+        public ServiceMaster AddOrUpdateServiceMaster(ServiceMaster service);
+        public bool DeleteServiceMasterbyId(int id);
+        #endregion
 
 
 

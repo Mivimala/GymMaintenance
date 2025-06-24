@@ -10,8 +10,8 @@ namespace GymMaintenance.Model.ViewModel
         public int? MemmberId { get; set; }
         public string? Name { get; set; }
         public string? MobileNumber { get; set; }
-        public string? Service { get; set; }
-        public string? Package { get; set; }
+        public string? ServiceId { get; set; }
+        public string? Plan { get; set; }
         public string? TimeSlot { get; set; }
 
         public DateOnly PlanStartingDate { get; set; }
