@@ -699,7 +699,7 @@ namespace GymMaintenance.DAL.Services
         public List<FingerPrint> GetAllfingreprint()
         {
             throw new NotImplementedException();
-                return new List<Login>();
+               
             //thiva
         }
         #region EquipmentEnrollment
@@ -798,28 +798,35 @@ namespace GymMaintenance.DAL.Services
 
         public HealthProgressTracking AddHealthProgressTracking(HealthProgressTracking healthProgressTracking)
         {
+            if (healthProgressTracking.Height == null || healthProgressTracking.Height == 0)
+                throw new ArgumentException("Height must be provided and greater than zero.");
 
-            var weight = healthProgressTracking.CurrentWeight ?? 0;
-            var height = healthProgressTracking.Height ?? 1; // avoid divide by zero
+            if (healthProgressTracking.CurrentWeight == null)
+                throw new ArgumentException("Current weight is required.");
+
+            var weight = healthProgressTracking.CurrentWeight;
+            var height = healthProgressTracking.Height;
 
             var bmi = Math.Round(weight / (height * height), 3);
-           
 
-            var result = _bioContext.HealthProgressTracking.Where(x => x.CandidateId == healthProgressTracking.CandidateId).FirstOrDefault();
-            if(result == null)
+            var result = _bioContext.HealthProgressTracking
+                .FirstOrDefault(x => x.CandidateId == healthProgressTracking.CandidateId);
+
+            if (result == null)
             {
-                result =new HealthProgressTracking();
-                result.CandidateId = healthProgressTracking.CandidateId;
-                result.Name= healthProgressTracking.Name;
-                result.InitialWeight = healthProgressTracking.InitialWeight;
-                result.Height = healthProgressTracking.Height;
-                result.CurrentWeight = healthProgressTracking.CurrentWeight;    
-                result.InitialBMI = healthProgressTracking.InitialBMI;
-                result.CurrentBMI = bmi;
-                //result.CurrentBMI =Math.Round( healthProgressTracking.CurrentWeight / (healthProgressTracking.Height * healthProgressTracking.Height,3);
-                result.CurrentDate = healthProgressTracking.CurrentDate;
-               _bioContext.HealthProgressTracking.Add(result);
+                result = new HealthProgressTracking
+                {
+                    CandidateId = healthProgressTracking.CandidateId,
+                    Name = healthProgressTracking.Name,
+                    InitialWeight = healthProgressTracking.InitialWeight,
+                    Height = healthProgressTracking.Height,
+                    CurrentWeight = healthProgressTracking.CurrentWeight,
+                    InitialBMI = healthProgressTracking.InitialBMI,
+                    CurrentBMI = bmi,
+                    CurrentDate = healthProgressTracking.CurrentDate
+                };
 
+                _bioContext.HealthProgressTracking.Add(result);
             }
             else
             {
@@ -829,11 +836,11 @@ namespace GymMaintenance.DAL.Services
                 result.Height = healthProgressTracking.Height;
                 result.InitialBMI = healthProgressTracking.InitialBMI;
                 result.CurrentBMI = bmi;
-               // result.CurrentBMI = healthProgressTracking.CurrentWeight / (healthProgressTracking.Height * healthProgressTracking.Height);
                 result.CurrentDate = healthProgressTracking.CurrentDate;
-                _bioContext.HealthProgressTracking.Update(result);
 
+                _bioContext.HealthProgressTracking.Update(result);
             }
+
             _bioContext.SaveChanges();
             return result;
         }
@@ -901,6 +908,11 @@ namespace GymMaintenance.DAL.Services
             return result;
 
        
+        }
+
+        public List<Login> GetAll()
+        {
+            throw new NotImplementedException();
         }
         #endregion
 
