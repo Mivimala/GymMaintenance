@@ -756,6 +756,7 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
+
         public EquipmentEnrollmentModel GetEquipmentEnrollmentbyid(int id )
         {
 
