@@ -7,7 +7,7 @@ namespace GymMaintenance.Model.ViewModel
         [Key]
         public int CandidateId { get; set; } 
 
-        public int CandidateId { get; set; }
+        
         public string? Name { get; set; }
 
         public decimal? Height { get; set; }
