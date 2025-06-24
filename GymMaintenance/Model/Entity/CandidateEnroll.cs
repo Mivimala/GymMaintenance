@@ -25,7 +25,9 @@ namespace GymMaintenance.Model.Entity
         public byte[] Picture { get; set; }
 
         public int FingerPrintID { get; set; }
-
+        [NotMapped]
+        public IFormFile PictureFile { get; set; }
+        
         public bool IsActive { get; set; }
         public DateTime CreatedDate { get; set; }
 
