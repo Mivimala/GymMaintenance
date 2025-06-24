@@ -20,25 +20,6 @@ namespace GymMaintenance.Controllers
         }
 
 
-        [HttpGet("GetAllLogin")]
-        public List<Login> GetAll()
-        {
-            return _ibiointerface.GetAll();
-        }
-
-        [HttpGet("{id:int}")]
-        public ActionResult<Login> GetById(int id)
-        {
-            var login = _ibiointerface.GetById(id);
-
-            if (login == null)
-            {
-                return NotFound(); 
-            }
-
-            return Ok(login); 
-        }
-
 
         [HttpPost("AddLogin")]
         public Login Addlog(Login login)
@@ -54,25 +35,6 @@ namespace GymMaintenance.Controllers
                 return NotFound($"No login found with ID = {id}");
 
             return Ok($"Login with ID = {id} deleted successfully");
-        }
-
-        [HttpGet("GetAllFingerPrints")]
-        public List<FingerPrint> GetAllfingreprint()
-        {
-            return _ibiointerface.GetAllfingreprint();
-        }
-
-        [HttpGet("fingerprint/{id:int}")]
-        public ActionResult<FingerPrint> GetByfingerprintId(int id)
-        {
-            var FingerPrint = _ibiointerface.GetByfingerprintId(id);
-
-            if (FingerPrint == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(FingerPrint);
         }
 
 
@@ -92,24 +54,6 @@ namespace GymMaintenance.Controllers
             return Ok($"Login with ID = {id} deleted successfully");
         }
 
-        [HttpGet("GetAllpayment")]
-        public List<Payment> GetAllpaymnent()
-        {
-            return _ibiointerface.GetAllpaymnent();
-        }
-
-        [HttpGet("payment/{id:int}")]
-        public ActionResult<Payment> GetBypaymentid(int id)
-        {
-            var Payment = _ibiointerface.GetBypaymentid(id);
-
-            if (Payment == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(Payment);
-        }
 
         [HttpPost("Addpayment")]
         public Payment Addpayment(Payment pymnnt)
@@ -127,26 +71,7 @@ namespace GymMaintenance.Controllers
             return Ok($"Login with ID = {id} deleted successfully");
         }
 
-        [HttpGet("GetAlltrainer")]
-        public List<TrainerEnrollment> GetAlltrainer()
-        {
-            return _ibiointerface.GetAlltrainer();
-        }
-
-        [HttpGet("trainer/{id:int}")]
-
-        public ActionResult<TrainerEnrollment> GetBytrainerid(int id)
-        {
-            var TrainerEnrollment = _ibiointerface.GetBytrainerid(id);
-
-            if (TrainerEnrollment == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(TrainerEnrollment);
-        }
-
+       
         [HttpPost("Addtrainer")]
         public TrainerEnrollment AddOrUpdateTrainer(TrainerEnrollment trainer)
         {
@@ -164,24 +89,6 @@ namespace GymMaintenance.Controllers
         }
 
 
-        [HttpGet("GetAllcandidate")]
-        public List<CandidateEnroll> GetAllcandidate()
-        {
-            return _ibiointerface.GetAllcandidate();
-        }
-
-        [HttpGet("candidate/{id:int}")]
-        public ActionResult<CandidateEnroll> GetBycandidateid(int id)
-        {
-            var CandidateEnroll = _ibiointerface.GetBycandidateid(id);
-
-            if (CandidateEnroll == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(CandidateEnroll);
-        }
 
         [HttpPost("Addcandidate")]
         public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate)
@@ -199,25 +106,7 @@ namespace GymMaintenance.Controllers
             return Ok($"Login with ID = {id} deleted successfully");
         }
 
-        [HttpGet("GetAllattendance")]
-        public List<AttendanceTable> GetAllattendance()
-        {
-            return _ibiointerface.GetAllattendance();
-        }
-
-        [HttpGet("attendance/{id:int}")]
-      
-        public ActionResult<AttendanceTable> GetByattendanceid(int id)
-        {
-            var AttendanceTable = _ibiointerface.GetByattendanceid(id);
-
-            if (AttendanceTable == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(AttendanceTable);
-        }
+       
 
         [HttpPost("Addattendance")]
         public AttendanceTable AddOrUpdateAttendance(AttendanceTable attendance)
@@ -234,10 +123,85 @@ namespace GymMaintenance.Controllers
 
             return Ok($"Login with ID = {id} deleted successfully");
         }
+
+
         [HttpGet]
         public List<LoginModel> GetAllLoginlog()
         {
-            return _ibiointerface.GetAllLoginlog();
+            return _ibiointerface.GetAllLogin();
+        }
+        
+        [HttpGet]
+        public List<CandidateEnrollModel> GetAllcandidate()
+        {
+            return _ibiointerface.GetAllcandidate();
+        }
+        [HttpGet]
+        public List<TrainerEnrollmentModel> GetAlltrainer()
+        {
+            return _ibiointerface.GetAlltrainer();
+        }
+        [HttpGet]
+        public List<AttendanceTableModel> GetAllAttendance()
+        {
+            return _ibiointerface.GetAllAttendance();
+        }
+        [HttpGet]
+        public List<PaymentModel> GetAllpayment()
+        {
+            return _ibiointerface.GetAllpayment();
+        }
+
+        [HttpGet("{id:int}")]
+
+        public ActionResult<LoginModel> GetLoginById(int id)
+        {
+            var result = _ibiointerface.GetLoginById(id);
+
+            return result;
+        }
+
+        [HttpGet("{id:int}")]
+
+        public ActionResult<FingerPrintModel> GetAllfingerprintbyID(int id)
+        {
+            var result = _ibiointerface.GetAllfingerprintbyID(id);
+
+            return result;
+        }
+        [HttpGet("{id:int}")]
+
+        public ActionResult<PaymentModel> GetAllpaymentbyId(int id)
+        {
+            var result = _ibiointerface.GetAllpaymentbyId(id);
+
+            return result;
+        }
+
+       
+        [HttpGet("{id:int}")]
+
+        public ActionResult<TrainerEnrollmentModel> GetAlltrainerbyID(int id)
+        {
+            var result = _ibiointerface.GetAlltrainerbyID(id);
+
+            return result;
+        }
+        [HttpGet("{id:int}")]
+
+        public ActionResult<CandidateEnrollModel> GetAllcandidatebyID(int id)
+        {
+            var result = _ibiointerface.GetAllcandidatebyID(id);
+
+            return result;
+        }
+        [HttpGet("{id:int}")]
+
+        public ActionResult<AttendanceTableModel> GetAllAttendancebyID(int id)
+        {
+            var result = _ibiointerface.GetAllAttendancebyID(id);
+
+            return result;
         }
 
 
