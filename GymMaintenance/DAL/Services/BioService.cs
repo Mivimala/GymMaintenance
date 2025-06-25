@@ -594,6 +594,7 @@ namespace GymMaintenance.DAL.Services
                 _bioContext.Payment.Update(result);
             }
             _bioContext.SaveChanges();
+
             return result;
         }
 
