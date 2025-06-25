@@ -7,8 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using GymMaintenance.Data;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Net.Mail;
+using MailKit.Net.Smtp;
+using MimeKit;
+using System.Threading.Tasks;
 
 namespace GymMaintenance.DAL.Services
 {
@@ -59,13 +62,13 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
-        public Login Addlog(Login login)
+        public Login AddTrainerlog(Login login)
         {
             var result = _bioContext.Login.Where(x => x.LoginId == login.LoginId).FirstOrDefault();
             if (result == null)
             {
                 result = new Login();
-                result.Role = login.Role;
+                result.Role = "Trainer";
                 result.UserName = login.UserName;
                 result.Password = login.Password;
                 _bioContext.Login.Add(result);
@@ -73,7 +76,7 @@ namespace GymMaintenance.DAL.Services
             else
             {
                 result.LoginId = login.LoginId;
-                result.Role = login.Role;
+                result.Role = "Trainer";
                 result.UserName = login.UserName;
                 result.Password = login.Password;
                 _bioContext.Login.Update(result);
@@ -91,9 +94,74 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges();
             return true;
         }
+        #region Email
+        public async Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        {
+            var user = _bioContext.Login
+                .FirstOrDefault(x => x.UserName == username && x.Password == password);// && x.Role == "Trainer");
+
+            if (user != null)
+            {
+                // ✅ Send email notification
+                await SendLoginNotificationToAdmin(user);
+
+                return new LoginModel
+                {
+                    LoginId = user.LoginId,
+                    Role = user.Role,
+                    UserName = user.UserName,
+                    Password = user.Password
+                };
+            }
+
+            return null;
+        }
+        public async Task SendLoginNotificationToAdmin(Login login)
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("GymManagement", "vimalajames2204@gmail.com"));
+            message.To.Add(new MailboxAddress("Admin", "arthisarthis34@gmail.com"));
+            message.Subject = "Trainer Login Notification";
+
+            //message.Body = new TextPart("plain")
+            //{
+            //    Text = $"Trainer '{login.UserName}' (ID: {login.LoginId}) has logged in at {DateTime.UtcNow} UTC."
+            //};
+
+
+            message.Body = new TextPart("html")
+            {
+                Text = $@"
+        
+
+                    <html>
+                    <body style='font-family: Arial, sans-serif; color: #333;'>
+                    <h2 style='color: #2c3e50;'>Trainer Login Alert 🚨</h2>
+                    <p><strong>Trainer Name:</strong> {login.UserName}</p>
+                    <p><strong>Login ID:</strong> {login.LoginId}</p>
+                    <p><strong>Login Time:</strong> {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")} UTC</p>
+                    <hr style='border: 0; height: 1px; background: #ccc;' />
+                    <p style='font-size: 12px; color: #999;'>This is an automated message from Trainer App.</p>
+                    </body>
+                    </html>"
+            };
+
+            using var client = new MailKit.Net.Smtp.SmtpClient();
+            await client.ConnectAsync("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync("vimalajames2204@gmail.com", "rxqw mgbr ozkg wjhp");
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+        }
+
+
+        #endregion
+
+
+
+
         #endregion
         #region  FingerPrint
-        
+
         public List<FingerPrintModel> GetAllfingerprint()
         {
             var result = (from a in _bioContext.FingerPrint
@@ -1066,7 +1134,9 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
 
-        
+       
+
+
         #endregion
     }
 }
