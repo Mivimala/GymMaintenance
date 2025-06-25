@@ -55,9 +55,9 @@ namespace GymMaintenance.Controllers
 
         [HttpPost]
 
-        public Login Addlog(Login login)
+        public Login AddTrainerlog(Login login)
         {
-            return _ibiointerface.Addlog(login);
+            return _ibiointerface.AddTrainerlog(login);
         }
        
         [HttpDelete("{id:int}")]
@@ -65,6 +65,13 @@ namespace GymMaintenance.Controllers
         {
             var result = _ibiointerface.DeleteById(id);
             return Ok();
+        }
+
+        [HttpPost]
+
+        public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        {
+            return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
         }
         #endregion
 
