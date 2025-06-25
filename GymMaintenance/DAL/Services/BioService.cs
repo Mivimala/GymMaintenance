@@ -559,7 +559,7 @@ namespace GymMaintenance.DAL.Services
             {
                 result = new Payment();
                 result.MemmberId = pymnnt.MemmberId;
-                result.Name = pymnnt.Name;
+                result.Name = pymnnt.Name; 
                 result.MobileNumber = pymnnt.MobileNumber;
                 result.ServiceId = pymnnt.ServiceId;
                 result.Package = pymnnt.Package;
