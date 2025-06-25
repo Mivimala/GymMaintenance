@@ -7,18 +7,20 @@ using Microsoft.EntityFrameworkCore;
 using GymMaintenance.Data;
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GymMaintenance.DAL.Services
 {
     public class BioService : IBioInterface
     {
         private readonly BioContext _bioContext;
-        public BioService(BioContext bioContext)
+        private readonly IMemoryCache _cache;
+        public BioService(BioContext bioContext, IMemoryCache cache)
 
         {
             _bioContext = bioContext;
+            _cache = cache;
         }
 
 
@@ -546,8 +548,12 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
-        public Payment Addpayment(Payment pymnnt)
+        public Payment Addpayment([FromBody] Payment pymnnt, [FromHeader(Name = "X-Session-ID")] string sessionId)
         {
+            if (string.IsNullOrEmpty(sessionId))// || !_cache.TryGetValue(sessionId, out string username))
+            {
+                return null;
+            }
             var result = _bioContext.Payment.Where(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo).FirstOrDefault();
             if (result == null)
             {
@@ -565,7 +571,7 @@ namespace GymMaintenance.DAL.Services
                 result.CurrentPayment = pymnnt.CurrentPayment;
                 result.BalanceAmount = pymnnt.PlanAmount - pymnnt.CurrentPayment;
                 result.ModeOfPayment = pymnnt.ModeOfPayment;
-                result.collectedby = pymnnt.collectedby;
+                result.collectedby = sessionId;
                 result.IsActive = pymnnt.IsActive;
                 result.CreatedDate = pymnnt.CreatedDate;
 
@@ -588,7 +594,7 @@ namespace GymMaintenance.DAL.Services
                 result.CurrentPayment = pymnnt.CurrentPayment;
                 result.BalanceAmount = pymnnt.BalanceAmount-pymnnt.CurrentPayment;
                 result.ModeOfPayment = pymnnt.ModeOfPayment;
-                result.collectedby = pymnnt.collectedby;
+                result.collectedby = sessionId;
                 result.IsActive = pymnnt.IsActive;
                 result.CreatedDate = pymnnt.CreatedDate;
                 _bioContext.Payment.Update(result);
@@ -1066,7 +1072,12 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
 
-        
+        public Payment Addpayment(Payment pymnnt)
+        {
+            throw new NotImplementedException();
+        }
+
+
         #endregion
     }
 }

@@ -10,6 +10,7 @@ namespace GymMaintenance.DAL.Interface
     {
 
         #region Login
+        Payment Addpayment(Payment payment, string sessionId);
         public List<LoginModel> GetAllLogin();
         public LoginModel GetLoginById(int id);
         public Login Addlog(Login login);

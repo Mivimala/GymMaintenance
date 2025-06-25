@@ -4,6 +4,7 @@ using GymMaintenance.Model.Entity;
 using GymMaintenance.Data;
 using GymMaintenance.DAL.Interface;
 using GymMaintenance.Model.ViewModel;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GymMaintenance.Controllers
 {
@@ -13,16 +14,32 @@ namespace GymMaintenance.Controllers
     {
         public readonly BioContext _ibioContext;
         public readonly IBioInterface _ibiointerface;
-        public BioController(BioContext bioContext, IBioInterface bioInterface)
+        private readonly IMemoryCache _cache;
+       
+        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)
         {
             _ibioContext = bioContext;
             _ibiointerface = bioInterface;
+            _cache = cache;
         }
 
         #region Login
 
+        [HttpPost]
+        public IActionResult Login([FromBody] LoginModel login)
+        {
+            var user = _ibioContext.Login
+                        .FirstOrDefault(x => x.UserName == login.UserName && x.Password == login.Password);
+
+            if (user == null)
+                return Unauthorized("Invalid credentials");
+            var sessionId = Guid.NewGuid().ToString();
+            _cache.Set(sessionId, user.UserName, TimeSpan.FromMinutes(30)); 
+            return Ok(new { sessionId, message = "Login success" });
+        }
+
         [HttpGet]
-        public List<LoginModel> GetAllLoginlog()
+        public List<LoginModel> GetAllLogin()
         {
             return _ibiointerface.GetAllLogin();
         }
@@ -99,10 +116,17 @@ namespace GymMaintenance.Controllers
             return result;
         }
 
-        [HttpPost]
-        public Payment Addpayment(Payment pymnnt)
+        [HttpPost("Addpayment")]
+        public IActionResult Addpayment(
+    [FromBody] Payment pymnnt,
+    [FromHeader(Name = "X-Session-ID")] string sessionId)
         {
-            return _ibiointerface.Addpayment(pymnnt);
+            var result = _ibiointerface.Addpayment(pymnnt, sessionId);
+
+            if (result == null)
+                return Unauthorized("Session expired or invalid");
+
+            return Ok(result);
         }
 
         [HttpDelete]
