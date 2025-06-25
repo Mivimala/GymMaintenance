@@ -25,7 +25,7 @@ namespace GymMaintenance.DAL.Interface
 
         #region Payment
         public List<PaymentModel> GetAllpayment();
-        public PaymentModel GetpaymentbyId(int id);
+        public PaymentModel GetpaymentbyId(int id, int serviceId);
         public Payment Addpayment(Payment pymnnt);
         public bool DeleteBypymntId(int id);
         #endregion

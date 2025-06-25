@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GymMaintenance.Model.Entity
 {
@@ -10,7 +11,7 @@ namespace GymMaintenance.Model.Entity
         public int MemmberId { get; set; }
         public string Name { get; set; }
         public string MobileNumber { get; set; }
-        public string Service { get; set; }
+        public int ServiceId { get; set; }
         public string Package { get; set; }
         public string TimeSlot { get; set; }
 
@@ -22,7 +23,12 @@ namespace GymMaintenance.Model.Entity
         public decimal CurrentPayment { get; set; }
 
         public string ModeOfPayment { get; set; }
+        public string collectedby { get; set; }
         public bool IsActive { get; set; }
         public DateOnly CreatedDate { get; set; }
+
+        //extra field
+        [NotMapped]
+        public int months { get; set; }
     }
 }
