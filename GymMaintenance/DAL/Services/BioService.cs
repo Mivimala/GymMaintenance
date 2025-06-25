@@ -127,6 +127,7 @@ namespace GymMaintenance.DAL.Services
             //{
             //    Text = $"Trainer '{login.UserName}' (ID: {login.LoginId}) has logged in at {DateTime.UtcNow} UTC."
             //};
+             
 
 
             message.Body = new TextPart("html")
