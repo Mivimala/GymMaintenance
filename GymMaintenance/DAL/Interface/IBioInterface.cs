@@ -12,8 +12,10 @@ namespace GymMaintenance.DAL.Interface
         #region Login
         public List<LoginModel> GetAllLogin();
         public LoginModel GetLoginById(int id);
-        public Login Addlog(Login login);
+        public Login AddTrainerlog(Login login);
         bool DeleteById(int id);
+        Task SendLoginNotificationToAdmin(Login login);
+        public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password);
         #endregion
 
         #region FingerPrint
