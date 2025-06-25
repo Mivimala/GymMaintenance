@@ -92,9 +92,9 @@ namespace GymMaintenance.Controllers
 
         [HttpGet]
 
-        public ActionResult<PaymentModel> GetpaymentbyId(int id)
+        public ActionResult<PaymentModel> GetpaymentbyId(int id, int serviceId)
         {
-            var result = _ibiointerface.GetpaymentbyId(id);
+            var result = _ibiointerface.GetpaymentbyId(id,serviceId);
 
             return result;
         }

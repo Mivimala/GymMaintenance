@@ -483,7 +483,7 @@ namespace GymMaintenance.DAL.Services
                               a.MemmberId,
                               a.Name,
                               a.MobileNumber,
-                              a.Service,
+                              a.ServiceId,
                               a.Package,
                               a.TimeSlot,
                               a.PlanStartingDate,
@@ -492,6 +492,7 @@ namespace GymMaintenance.DAL.Services
                               a.BalanceAmount,
                               a.CurrentPayment,
                               a.ModeOfPayment,
+                              a.collectedby,
                               a.IsActive,
                               a.CreatedDate
                              
@@ -501,7 +502,7 @@ namespace GymMaintenance.DAL.Services
                               MemmberId = x.MemmberId,
                               Name = x.Name,
                               MobileNumber = x.MobileNumber,
-                              ServiceId = x.Service,
+                              ServiceId = x.ServiceId,
                               Plan = x.Package,
                               TimeSlot = x.TimeSlot,
                               PlanStartingDate = x.PlanStartingDate,
@@ -510,6 +511,7 @@ namespace GymMaintenance.DAL.Services
                               BalanceAmount = x.BalanceAmount,
                               CurrentPayment = x.CurrentPayment,
                               ModeOfPayment = x.ModeOfPayment,
+                              collectedby=x.collectedby,
                               IsActive = x.IsActive,
                               CreatedDate = x.CreatedDate
                              
@@ -517,9 +519,9 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
         
-        public PaymentModel GetpaymentbyId( int id)
+        public PaymentModel GetpaymentbyId( int id,int serviceId)
         {
-            var result = (from a in _bioContext.Payment where a.MemmberId == id
+            var result = (from a in _bioContext.Payment where a.MemmberId == id && a.ServiceId==serviceId 
                           select new PaymentModel
                           {
                              
@@ -527,7 +529,7 @@ namespace GymMaintenance.DAL.Services
                               MemmberId = a.MemmberId,
                               Name = a.Name,
                               MobileNumber = a.MobileNumber,
-                              ServiceId = a.Service,
+                              ServiceId = a.ServiceId,
                               Plan = a.Package,
                               TimeSlot = a.TimeSlot,
                               PlanStartingDate = a.PlanStartingDate,
@@ -536,6 +538,7 @@ namespace GymMaintenance.DAL.Services
                               BalanceAmount = a.BalanceAmount,
                               CurrentPayment = a.CurrentPayment,
                               ModeOfPayment = a.ModeOfPayment,
+                              collectedby = a.collectedby,
                               IsActive = a.IsActive,
                               CreatedDate = a.CreatedDate
 
@@ -552,15 +555,17 @@ namespace GymMaintenance.DAL.Services
                 result.MemmberId = pymnnt.MemmberId;
                 result.Name = pymnnt.Name;
                 result.MobileNumber = pymnnt.MobileNumber;
-                result.Service = pymnnt.Service;
+                result.ServiceId = pymnnt.ServiceId;
                 result.Package = pymnnt.Package;
+                result.months= Convert.ToInt32( pymnnt.Package.Substring(0, 1));
                 result.TimeSlot = pymnnt.TimeSlot;
-                result.PlanStartingDate = pymnnt.PlanStartingDate;
-                result.PlanExpiringDate = pymnnt.PlanExpiringDate;
+                result.PlanStartingDate = (pymnnt.PlanStartingDate);
+                result.PlanExpiringDate = pymnnt.PlanStartingDate.AddMonths(result.months);
                 result.PlanAmount = pymnnt.PlanAmount;
                 result.CurrentPayment = pymnnt.CurrentPayment;
                 result.BalanceAmount = pymnnt.PlanAmount - pymnnt.CurrentPayment;
                 result.ModeOfPayment = pymnnt.ModeOfPayment;
+                result.collectedby = pymnnt.collectedby;
                 result.IsActive = pymnnt.IsActive;
                 result.CreatedDate = pymnnt.CreatedDate;
 
@@ -573,15 +578,17 @@ namespace GymMaintenance.DAL.Services
                 result.MemmberId = pymnnt.MemmberId;
                 result.Name = pymnnt.Name;
                 result.MobileNumber = pymnnt.MobileNumber;
-                result.Service = pymnnt.Service;
+                result.ServiceId = pymnnt.ServiceId;
                 result.Package = pymnnt.Package;
                 result.TimeSlot = pymnnt.TimeSlot;
                 result.PlanStartingDate = pymnnt.PlanStartingDate;
-                result.PlanExpiringDate = pymnnt.PlanExpiringDate;
+                result.months = Convert.ToInt32(pymnnt.Package.Substring(0, 1));
+                result.PlanExpiringDate = pymnnt.PlanStartingDate.AddMonths(result.months);
                 result.PlanAmount = pymnnt.PlanAmount;
                 result.CurrentPayment = pymnnt.CurrentPayment;
                 result.BalanceAmount = pymnnt.BalanceAmount-pymnnt.CurrentPayment;
                 result.ModeOfPayment = pymnnt.ModeOfPayment;
+                result.collectedby = pymnnt.collectedby;
                 result.IsActive = pymnnt.IsActive;
                 result.CreatedDate = pymnnt.CreatedDate;
                 _bioContext.Payment.Update(result);
@@ -1056,6 +1063,8 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges();
             return true;
         }
+
+        
         #endregion
     }
 }
