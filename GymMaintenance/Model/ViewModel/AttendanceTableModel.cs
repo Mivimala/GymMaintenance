@@ -16,9 +16,5 @@ namespace GymMaintenance.Model.ViewModel
 
         public DateTime AttendanceDate { get; set; }
         public TimeSpan? InTime { get; set; }
-        public TimeSpan? OutTime { get; set; }
-
-        [ForeignKey("FingerPrintID")]
-        public FingerPrint? FingerPrint { get; set; }
     }
 }

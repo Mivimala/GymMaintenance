@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using GymMaintenance.Model.Entity;
+﻿using GymMaintenance.DAL.Interface;
+using GymMaintenance.DAL.Services;
 using GymMaintenance.Data;
-using GymMaintenance.DAL.Interface;
+using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GymMaintenance.Controllers
 {
@@ -13,16 +14,62 @@ namespace GymMaintenance.Controllers
     {
         public readonly BioContext _ibioContext;
         public readonly IBioInterface _ibiointerface;
-        public BioController(BioContext bioContext, IBioInterface bioInterface)
+        private readonly IMemoryCache _cache;
+       
+
+        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)
         {
             _ibioContext = bioContext;
             _ibiointerface = bioInterface;
+            _cache = cache;
+           
         }
 
+        #region imageuploadbase64
+        [HttpPost]
+        public async Task<IActionResult> CreateTemplate([FromBody] Imageupload dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Image))
+                return BadRequest("Image is required.");
+
+            var imageBytes = await _ibiointerface.ConvertBase64ToTemplateAsync(dto.Image);
+
+            return File(imageBytes, "image/png");
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyFingerprint([FromBody] VerifyFingerprintRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Base64Image))
+                return BadRequest("Image is required.");
+
+            bool match = await _ibiointerface.VerifyFingerprintAsync(request.Base64Image);
+
+            if (match)
+                return Ok(" Fingerprint matched successfully!");
+            else
+                return NotFound(" No matching fingerprint found.");
+        }
+
+        #endregion
         #region Login
 
+        [HttpPost]
+        public IActionResult Login([FromBody] LoginModel login)
+        {
+            var user = _ibioContext.Login
+                        .FirstOrDefault(x => x.UserName == login.UserName && x.Password == login.Password);
+
+            if (user == null)
+                return Unauthorized("Invalid credentials");
+            var sessionId = Guid.NewGuid().ToString();
+            _cache.Set(sessionId, user.UserName, TimeSpan.FromMinutes(30)); 
+            return Ok(new { sessionId, message = "Login success" });
+        }
+
         [HttpGet]
-        public List<LoginModel> GetAllLoginlog()
+        public List<LoginModel> GetAllLogin()
         {
             return _ibiointerface.GetAllLogin();
         }
@@ -38,9 +85,9 @@ namespace GymMaintenance.Controllers
 
         [HttpPost]
 
-        public Login Addlog(Login login)
+        public Login AddTrainerlog(Login login)
         {
-            return _ibiointerface.Addlog(login);
+            return _ibiointerface.AddTrainerlog(login);
         }
        
         [HttpDelete("{id:int}")]
@@ -48,6 +95,13 @@ namespace GymMaintenance.Controllers
         {
             var result = _ibiointerface.DeleteById(id);
             return Ok();
+        }
+
+        [HttpPost]
+
+        public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        {
+            return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
         }
         #endregion
 
@@ -70,9 +124,13 @@ namespace GymMaintenance.Controllers
         }
 
         [HttpPost]
-        public FingerPrint AddFingerPrint(FingerPrint fingerprint)
+        public async Task<ActionResult<FingerPrintModel>> AddFingerPrintAsync([FromBody] FingerPrintModel fingerprintDto)
         {
-            return _ibiointerface.AddFingerPrint(fingerprint);
+            if (fingerprintDto == null)
+                return BadRequest("Invalid fingerprint data.");
+
+            var result = await _ibiointerface.AddFingerPrintAsync(fingerprintDto);
+            return Ok(result);
         }
 
         [HttpDelete]
@@ -81,6 +139,15 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteByfingerprintId(id);
             return Ok();
         }
+
+        //[HttpPost]
+        //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model)
+        //{
+        //    return _ibiointerface.SaveFingerprint(model);
+        //}
+
+
+
         #endregion
 
         #region Payment
@@ -100,9 +167,16 @@ namespace GymMaintenance.Controllers
         }
 
         [HttpPost]
-        public Payment Addpayment(Payment pymnnt)
+        public IActionResult Addpayment(
+    [FromBody] Payment pymnnt,
+    [FromHeader(Name = "X-Session-ID")] string sessionId)
         {
-            return _ibiointerface.Addpayment(pymnnt);
+            var result = _ibiointerface.Addpayment(pymnnt, sessionId);
+
+            if (result == null)
+                return Unauthorized("Session expired or invalid");
+
+            return Ok(result);
         }
 
         [HttpDelete]
@@ -122,6 +196,20 @@ namespace GymMaintenance.Controllers
             return _ibiointerface.GetAlltrainer();
         }
 
+        [HttpGet]
+        public IActionResult SearchTrainerEnroll([FromQuery] string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return BadRequest(new { message = "Keyword is required" });
+
+            var results = _ibiointerface.SearchTrainerEnrollByName(keyword);
+
+            if (results.Count == 0)
+                return NotFound(new { message = "No equipment found" });
+
+            return Ok(results);
+        }
+
         [HttpGet("{id:int}")]
 
         public ActionResult<TrainerEnrollmentModel> GetAlltrainerbyID(int id)
@@ -131,7 +219,7 @@ namespace GymMaintenance.Controllers
             return result;
         }
 
-        [HttpPost("Addtrainer")]
+        [HttpPost]
         public TrainerEnrollment AddOrUpdateTrainer(TrainerEnrollment trainer)
         {
             return _ibiointerface.AddOrUpdateTrainer(trainer);
@@ -155,6 +243,19 @@ namespace GymMaintenance.Controllers
         {
             return _ibiointerface.GetAllcandidate();
         }
+        [HttpGet]
+        public IActionResult SearchCandidateEnroll([FromQuery] string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return BadRequest(new { message = "Keyword is required" });
+
+            var results = _ibiointerface.SearchCandidateEnrollByName(keyword);
+
+            if (results.Count == 0)
+                return NotFound(new { message = "No equipment found" });
+
+            return Ok(results);
+        }
 
         [HttpGet]
 
@@ -164,11 +265,14 @@ namespace GymMaintenance.Controllers
 
             return result;
         }
-
         [HttpPost]
-        public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate)
+        public ActionResult<CandidateEnrollment> AddOrUpdateCandidate([FromBody] CandidateEnrollModel candidateModel)
         {
-            return _ibiointerface.AddOrUpdateCandidate(candidate);
+            if (candidateModel == null)
+                return BadRequest("Candidate data is required.");
+
+            var result = _ibiointerface.AddOrUpdateCandidate(candidateModel);
+            return Ok(result);
         }
 
         [HttpDelete]
@@ -318,6 +422,102 @@ namespace GymMaintenance.Controllers
             return Ok();
         }
 
+        #endregion
+
+        #region servicetable
+        
+
+        [HttpGet]
+
+        public List<Servicetable> GetallServicetable()
+        {
+            var result = _ibiointerface.GetallServicetable();
+            return result;
+        }
+
+       
+        [HttpGet]
+        public ActionResult<Servicetable> GetbyidServicetable(int id)
+        {
+            var result = _ibiointerface.GetbyidServicetable(id);
+            if (result == null)
+            {
+                return NotFound();
+
+            }
+            else
+            {
+                return result;
+            }
+
+        }
+
+        [HttpPost]
+        public Servicetable AddServicetable(Servicetable servicetables)
+        {
+            var result = _ibiointerface.AddServicetable(servicetables);
+            return result;
+        }
+
+
+
+        [HttpDelete]
+
+        public ActionResult<Servicetable> Deletebyidservicetable(int id)
+        {
+            var result = _ibiointerface.DeletebyidServicetable(id);
+
+            return result;
+        }
+
+
+        #endregion
+
+        #region packagetable
+
+        [HttpGet]
+
+        public List<Packagetable> GetAllPackagetable()
+        {
+            var result = _ibiointerface.GetallPackagetable();
+            return result;
+        }
+
+
+        [HttpGet]
+        public ActionResult<Packagetable> getbyidpackagetable(int id)
+        {
+            var result = _ibiointerface.GetbyidPackagetable(id);
+            if (result == null)
+            {
+
+                return NotFound();
+
+            }
+            else
+            {
+                return result;
+            }
+
+        }
+
+
+        [HttpPost]
+        public Packagetable AddPackagetable(Packagetable packagetable)
+        {
+            var result = _ibiointerface.AddPackagetable(packagetable);
+            return result;
+
+        }
+
+        [HttpDelete]
+
+        public ActionResult<Packagetable> Deletebyidpackagetable(int id)
+        {
+            var result = _ibiointerface.DeletebyidPackagetable(id);
+
+            return result;
+        }
         #endregion
 
     }
