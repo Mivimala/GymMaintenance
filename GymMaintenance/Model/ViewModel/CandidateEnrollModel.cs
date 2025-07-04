@@ -30,5 +30,6 @@ namespace GymMaintenance.Model.ViewModel
         //public FingerPrint? FingerPrint { get; set; }
 
         //public ICollection<AttendanceTable>? Attendances { get; set; }
+
     }
 }
