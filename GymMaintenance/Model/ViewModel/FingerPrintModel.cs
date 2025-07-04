@@ -8,9 +8,9 @@ namespace GymMaintenance.Model.ViewModel
         public int FingerPrintID { get; set; }
 
         public string? Role { get; set; }
-        public byte[]? FingerPrint1 { get; set; }
-        public byte[]? FingerPrint2 { get; set; }
-        public byte[]? FingerPrint3 { get; set; }
+        public string? FingerPrint1 { get; set; }
+        public string? FingerPrint2 { get; set; }
+        public string? FingerPrint3 { get; set; }
         public DateTime CreatedDate { get; set; }
     }
 }

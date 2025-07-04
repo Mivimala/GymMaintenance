@@ -1,7 +1,6 @@
 ﻿using GymMaintenance.Model.Entity;
-using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
-using GymMaintenance.Model.ViewModel;
+using Microsoft.AspNetCore.Mvc;
 
 
 namespace GymMaintenance.DAL.Interface
@@ -22,8 +21,10 @@ namespace GymMaintenance.DAL.Interface
         #region FingerPrint
         public List<FingerPrintModel> GetAllfingerprint();
         public FingerPrintModel GetAllfingerprintbyID(int id);
-        public FingerPrint AddFingerPrint(FingerPrint fingerprint);
+        //public FingerPrint AddFingerPrint(FingerPrint fingerprint);
+        Task<FingerPrintModel> AddFingerPrintAsync(FingerPrintModel dto);
         bool DeleteByfingerprintId(int id);
+        //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model);
         #endregion
 
         #region Payment
@@ -35,6 +36,7 @@ namespace GymMaintenance.DAL.Interface
 
         #region TrainerEnrollment
         public List<TrainerEnrollmentModel> GetAlltrainer();
+        public List<TrainerEnrollment> SearchTrainerEnrollByName(string keyword);
         public TrainerEnrollmentModel GetAlltrainerbyID(int id);
         public TrainerEnrollment AddOrUpdateTrainer(TrainerEnrollment trainer);
         public bool DeleteBytrainerId(int id);
@@ -42,8 +44,9 @@ namespace GymMaintenance.DAL.Interface
 
         #region CandidateEnroll
         public List<CandidateEnrollModel> GetAllcandidate();
+        public List<CandidateEnrollment> SearchCandidateEnrollByName(string keyword);
         public CandidateEnrollModel GetAllcandidatebyID(int id);
-        public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate);
+        public CandidateEnrollment AddOrUpdateCandidate(CandidateEnrollModel candidateModel);
         public bool DeleteBycandidateId(int id);
         #endregion
 
@@ -81,6 +84,28 @@ namespace GymMaintenance.DAL.Interface
         public ServiceMaster AddOrUpdateServiceMaster(ServiceMaster service);
         public bool DeleteServiceMasterbyId(int id);
         #endregion
+
+        #region Imageuploadbase64
+        Task<bool> VerifyFingerprintAsync(string base64Image);
+        Task<byte[]> ConvertBase64ToTemplateAsync(string base64Image);
+        #endregion
+
+
+        #region servicetable
+        public List<Servicetable> GetallServicetable();
+        public Servicetable GetbyidServicetable(int id);
+        public Servicetable AddServicetable(Servicetable servicetable);
+        public Servicetable DeletebyidServicetable(int id);
+
+        #endregion
+
+        #region packagetable
+        public List<Packagetable> GetallPackagetable();
+        public Packagetable GetbyidPackagetable(int id);
+        public Packagetable AddPackagetable(Packagetable packagetable);
+        public Packagetable DeletebyidPackagetable(int id);
+        #endregion
+
 
 
 

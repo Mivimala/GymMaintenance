@@ -13,6 +13,9 @@ namespace GymMaintenance.Model.Entity
         public byte[] FingerPrint2 { get; set; }
         public byte[] FingerPrint3 { get; set; }
         public DateTime CreatedDate { get; set; }
+        //public ICollection<CandidateEnrollment>? Candidates { get; set; }
+        //public ICollection<AttendanceTable>? Attendances { get; set; }
+
         //public ICollection<TrainerEnrollment>? Trainers { get; set; }
         //public ICollection<CandidateEnroll>? Candidates { get; set; }
         //public ICollection<AttendanceTable>? Attendances { get; set; }

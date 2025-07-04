@@ -1,18 +1,31 @@
 ﻿using GymMaintenance.DAL.Interface;
-using GymMaintenance.Model.Entity;
-using GymMaintenance.Controllers;
-using GymMaintenance.Model.ViewModel;
-using System.IO;
-using Microsoft.EntityFrameworkCore;
 using GymMaintenance.Data;
+using GymMaintenance.Model.Entity;
+using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
-using Microsoft.AspNetCore.Http.HttpResults;
-using System.Net.Mail;
-using MailKit.Net.Smtp;
-using MimeKit;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+
+
+//using MFS100;
 using Microsoft.Extensions.Caching.Memory;
+using MimeKit;
+using PdfSharpCore.Drawing;
+using PdfSharpCore.Pdf;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
+using System.Data;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Reflection;
+using System.Runtime.ConstrainedExecution;
 
 namespace GymMaintenance.DAL.Services
 {
@@ -27,6 +40,96 @@ namespace GymMaintenance.DAL.Services
             _cache = cache;
         }
 
+        #region ImageUploadbase64
+        public async Task<byte[]> ConvertBase64ToTemplateAsync(string base64Image)
+        {
+            if (base64Image.Contains(","))
+            {
+                base64Image = base64Image.Substring(base64Image.IndexOf(",") + 1);
+            }
+
+            byte[] imageBytes = Convert.FromBase64String(base64Image);
+
+            using var inputStream = new MemoryStream(imageBytes);
+            using var image = await SixLabors.ImageSharp.Image.LoadAsync(inputStream);
+
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new SixLabors.ImageSharp.Size(500, 500),
+                Mode = ResizeMode.Max
+            }));
+
+            using var outputStream = new MemoryStream();
+            await image.SaveAsync(outputStream, new PngEncoder());
+
+            return outputStream.ToArray();
+        }
+
+        public bool AreFingerprintsMatching(byte[] a, byte[] b)
+        {
+            if (a == null || b == null || a.Length != b.Length)
+                return false;
+
+            for (int i = 0;  i < a.Length; i++)
+            {
+                if (a[i] != b[i]) return false;
+            }
+
+            return true;
+        }
+        public async Task<bool> VerifyFingerprintAsync(string base64Image)
+        {
+            var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
+
+            var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
+
+            foreach (var record in allFingerprints)
+            {
+                if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
+                    AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
+                    AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
+                {
+                    var candidate = await _bioContext.CandidateEnrollment
+                        .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
+
+                    if (candidate == null)
+                        return false;
+
+                    var alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+                        a.FingerPrintID == record.FingerPrintID &&
+                        a.AttendanceDate == DateTime.Today);
+
+                    if (!alreadyMarked)
+                    {
+                        try
+                        {
+                            var attendance = new AttendanceTable
+                            {
+                                FingerPrintID = record.FingerPrintID,
+                                CandidateId = candidate.CandidateId,
+                                CandidateName = candidate.Name,
+                                AttendanceDate = DateTime.Today,
+                                InTime = DateTime.Now.TimeOfDay
+                            };
+
+                            _bioContext.AttendanceTable.Add(attendance);
+                            await _bioContext.SaveChangesAsync();
+                        }
+                        catch (DbUpdateException ex)
+                        {
+                            var inner = ex.InnerException?.Message ?? ex.Message;
+                            Console.WriteLine("Error saving attendance: " + inner);
+                            throw;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            return false; 
+        }
+        #endregion
 
 
 
@@ -123,7 +226,7 @@ namespace GymMaintenance.DAL.Services
         {
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("GymManagement", "vimalajames2204@gmail.com"));
-            message.To.Add(new MailboxAddress("Admin", "arthisarthis34@gmail.com"));
+            message.To.Add(new MailboxAddress("Admin", "tarunsivakumar03@gmail.com"));
             message.Subject = "Trainer Login Notification";
 
             //message.Body = new TextPart("plain")
@@ -168,65 +271,82 @@ namespace GymMaintenance.DAL.Services
 
         public List<FingerPrintModel> GetAllfingerprint()
         {
-            var result = (from a in _bioContext.FingerPrint
-                          select new
-                          {
-                              a.FingerPrintID,
-                              a.Role,
-                              a.FingerPrint1,
-                              a.FingerPrint2,
-                              a.FingerPrint3
-                          }).AsEnumerable().Select(x => new FingerPrintModel
-                          {
-                              FingerPrintID = x.FingerPrintID,
-                              Role = x.Role,
-                              FingerPrint1 = x.FingerPrint1,
-                              FingerPrint2 = x.FingerPrint2,
-                              FingerPrint3 = x.FingerPrint3
-                          }).ToList();
-            return result;
+            return _bioContext.FingerPrint
+                .AsEnumerable()
+                .Select(x => new FingerPrintModel
+                {
+                    FingerPrintID = x.FingerPrintID,
+                    Role = x.Role,
+                    FingerPrint1 = x.FingerPrint1 != null ? $"data:image/png;base64,{Convert.ToBase64String(x.FingerPrint1)}" : null,
+                    FingerPrint2 = x.FingerPrint2 != null ? $"data:image/png;base64,{Convert.ToBase64String(x.FingerPrint2)}" : null,
+                    FingerPrint3 = x.FingerPrint3 != null ? $"data:image/png;base64,{Convert.ToBase64String(x.FingerPrint3)}" : null,
+                    CreatedDate = x.CreatedDate
+                }).ToList();
         }
+
         public FingerPrintModel GetAllfingerprintbyID(int id)
-        {
-            var result = (from a in _bioContext.FingerPrint where a.FingerPrintID==id
-                          select new FingerPrintModel
-                          {
-                              FingerPrintID=a.FingerPrintID,
-                              Role=a.Role,
-                              FingerPrint1=a.FingerPrint1,
-                              FingerPrint2=a.FingerPrint2,
-                              FingerPrint3=a.FingerPrint3
-                          }).FirstOrDefault();
-            return result;
+        {    
+
+            var x = _bioContext.FingerPrint.FirstOrDefault(a => a.FingerPrintID == id);
+
+            if (x == null) return null;
+
+            return new FingerPrintModel
+            {
+                FingerPrintID = x.FingerPrintID,
+                Role = x.Role,
+                FingerPrint1 = x.FingerPrint1 != null ? $"data:image/png;base64,{Convert.ToBase64String(x.FingerPrint1)}" : null,
+                FingerPrint2 = x.FingerPrint2 != null ? $"data:image/png;base64,{Convert.ToBase64String(x.FingerPrint2)}" : null,
+                FingerPrint3 = x.FingerPrint3 != null ? $"data:image/png;base64,{Convert.ToBase64String(x.FingerPrint3)}" : null,
+                CreatedDate = x.CreatedDate
+            };
         }
-       
-        public FingerPrint AddFingerPrint(FingerPrint fingerprint)
+
+        public async Task<FingerPrintModel> AddFingerPrintAsync(FingerPrintModel dto)
         {
-            var result = _bioContext.FingerPrint.Where(x => x.FingerPrintID == fingerprint.FingerPrintID).FirstOrDefault();
+            var result = _bioContext.FingerPrint.FirstOrDefault(x => x.FingerPrintID == dto.FingerPrintID);
+
+            byte[] fp1 = await ConvertBase64ToTemplateAsync(dto.FingerPrint1);
+            byte[] fp2 = await ConvertBase64ToTemplateAsync(dto.FingerPrint2);
+            byte[] fp3 = await ConvertBase64ToTemplateAsync(dto.FingerPrint3);
+
             if (result == null)
             {
-                result = new FingerPrint();
-                result.Role = fingerprint.Role;
-                result.FingerPrint1 = fingerprint.FingerPrint1;
-                result.FingerPrint2 = fingerprint.FingerPrint2;
-                result.FingerPrint3 = fingerprint.FingerPrint3;
-                result.CreatedDate = fingerprint.CreatedDate;
+                result = new FingerPrint
+                {
+                    Role = dto.Role,
+                    FingerPrint1 = fp1,
+                    FingerPrint2 = fp2,
+                    FingerPrint3 = fp3,
+                    CreatedDate = dto.CreatedDate
+                };
                 _bioContext.FingerPrint.Add(result);
             }
             else
             {
-                result.FingerPrintID = fingerprint.FingerPrintID;
-                result.Role = fingerprint.Role;
-                result.FingerPrint1 = fingerprint.FingerPrint1;
-                result.FingerPrint2 = fingerprint.FingerPrint2;
-                result.FingerPrint3 = fingerprint.FingerPrint3;
-                result.CreatedDate = fingerprint.CreatedDate;
+                result.Role = dto.Role;
+                result.FingerPrint1 = fp1;
+                result.FingerPrint2 = fp2;
+                result.FingerPrint3 = fp3;
+                result.CreatedDate = dto.CreatedDate;
+
+
                 _bioContext.FingerPrint.Update(result);
             }
-            _bioContext.SaveChanges();
-            return result;
-        }
 
+            await _bioContext.SaveChangesAsync();
+            return new FingerPrintModel
+            {
+                FingerPrintID = result.FingerPrintID,
+                Role = result.Role,
+                FingerPrint1 = Convert.ToBase64String(result.FingerPrint1),
+                FingerPrint2 = Convert.ToBase64String(result.FingerPrint2),
+                FingerPrint3 = Convert.ToBase64String(result.FingerPrint3),
+                CreatedDate = result.CreatedDate
+            };
+
+            
+        }
 
         public bool DeleteByfingerprintId(int id)
         {
@@ -238,31 +358,107 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
 
+
+        //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model)
+        //{
+        //    if (string.IsNullOrEmpty(model.FingerPrint1))
+        //        return new BadRequestObjectResult("The fingerprint field is required.");
+
+        //    try
+        //    {
+        //        // Try to decode the Base64 to validate it's correct
+        //        byte[] fingerprintData = Convert.FromBase64String(model.FingerPrint1);
+
+        //        var entity = new FingerPrint
+        //        {
+        //            FingerPrint1 = model.FingerPrint1,   // Store the Base64 string directly
+        //            CreatedDate = DateTime.Now,
+        //            Role = model.Role
+        //        };
+
+        //        _bioContext.FingerPrint.Add(entity);
+        //        _bioContext.SaveChanges();
+
+        //        return new OkObjectResult("Fingerprint saved successfully.");
+        //    }
+        //    catch (FormatException)
+        //    {
+        //        return new BadRequestObjectResult("Invalid Base64 format in fingerprint.");
+        //    }
+        //}
+
+
+        //string fingerprintTemplate = request.FingerPrint1;
+
+        //// You should now compare this fingerprint with registered templates
+        //// For example, match with stored fingerprint templates in database
+
+        //bool isMatch = MatchFingerprint(fingerprintTemplate);
+        //if (isMatch)
+        //{
+        //    // Save attendance entry
+        //    return Ok(new { success = true, message = "Attendance marked successfully." });
+        //}
+        //else
+        //{
+        //    return Unauthorized(new { success = false, message = "Fingerprint not recognized." });
+        //}
+
+
+        //private IActionResult Unauthorized(object value)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //private IActionResult Ok(object value)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //private bool MatchFingerprint(string scannedTemplate)
+        //{
+        //    // Load enrolled templates from DB and match
+        //    // You would use SecuGen SDK for template matching
+        //    return true; // simulate a match
+        //}
+
+
+
+
+        //private IActionResult BadRequest(string v)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //private IActionResult Ok(string v)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+
+
+
         #endregion
 
         #region Candidate
-       
         public List<CandidateEnrollModel> GetAllcandidate()
         {
-            var result = (from a in _bioContext.CandidateEnroll
+            var result = (from a in _bioContext.CandidateEnrollment
                           select new
                           {
                               a.CandidateId,
                               a.Name,
                               a.Gender,
-                              a.Weight,
-                              a.Height,
-                              a.Waist,
-                              a.BMI,
-                              a.BloodGroup,
-                              a.Age,
-                              a.CurrentAddress,
-                              a.PermanentAddress,
-                              a.AadharNumber,
+                              a.Address,
                               a.MobileNumber,
-                              a.EmailId,
-                              a.Profession,
-                              a.Picture,
+                              a.DOB,
+                              a.ServiceId,
+                              a.PackageId,
+                              a.PackageAmount,
+                              a.BalanceAmount,
+                              a.FromDate,
+                              a.ToDate,
+                              a.PaymentStatus,
                               a.FingerPrintID,
                               a.IsActive,
                               a.CreatedDate,
@@ -271,48 +467,49 @@ namespace GymMaintenance.DAL.Services
                               CandidateId = x.CandidateId,
                               Name = x.Name,
                               Gender = x.Gender,
-                              Weight = x.Weight,
-                              Height = x.Height,
-                              Waist = x.Waist,
-                              BMI = x.BMI,
-                              BloodGroup = x.BloodGroup,
-                              Age = x.Age,
-                              CurrentAddress = x.CurrentAddress,
-                              PermanentAddress = x.PermanentAddress,
-                              AadharNumber = x.AadharNumber,
+                              Address = x.Address,
                               MobileNumber = x.MobileNumber,
-                              EmailId = x.EmailId,
-                              Profession = x.Profession,
-                              Picture = x.Picture,
+                              DOB = x.DOB,
+                              ServiceId = x.ServiceId,
+                              PackageId = x.PackageId,
+                              PackageAmount = x.PackageAmount,
+                              BalanceAmount = x.BalanceAmount,
+                              FromDate = x.FromDate,
+                              ToDate = x.ToDate,
+                              PaymentStatus = x.PaymentStatus,
                               FingerPrintID = x.FingerPrintID,
                               IsActive = x.IsActive,
                               CreatedDate = x.CreatedDate,
                           }).ToList();
             return result;
         }
+
+        public List<CandidateEnrollment> SearchCandidateEnrollByName(string keyword)
+        {
+            return _bioContext.CandidateEnrollment.Where(e => !string.IsNullOrEmpty(e.Name) &&
+                                          e.Name.ToLower().Contains(keyword.ToLower()))
+                              .ToList();
+        }
+
         public CandidateEnrollModel GetAllcandidatebyID(int id)
         {
-            var result = (from x in _bioContext.CandidateEnroll
+            var result = (from x in _bioContext.CandidateEnrollment
                           where x.CandidateId == id
                           select new CandidateEnrollModel
                           {
-
                               CandidateId = x.CandidateId,
                               Name = x.Name,
                               Gender = x.Gender,
-                              Weight = x.Weight,
-                              Height = x.Height,
-                              Waist = x.Waist,
-                              BMI = x.BMI,
-                              BloodGroup = x.BloodGroup,
-                              Age = x.Age,
-                              CurrentAddress = x.CurrentAddress,
-                              PermanentAddress = x.PermanentAddress,
-                              AadharNumber = x.AadharNumber,
+                              Address = x.Address,
                               MobileNumber = x.MobileNumber,
-                              EmailId = x.EmailId,
-                              Profession = x.Profession,
-                              Picture = x.Picture,
+                              DOB = x.DOB,
+                              ServiceId = x.ServiceId,
+                              PackageId = x.PackageId,
+                              PackageAmount = x.PackageAmount,
+                              BalanceAmount = x.BalanceAmount,
+                              FromDate = x.FromDate,
+                              ToDate = x.ToDate,
+                              PaymentStatus = x.PaymentStatus,
                               FingerPrintID = x.FingerPrintID,
                               IsActive = x.IsActive,
                               CreatedDate = x.CreatedDate,
@@ -320,70 +517,79 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
-        public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate)
+
+
+        private DateTime CalculateToDate(DateTime fromDate, int packageMonths)
         {
-            var result = _bioContext.CandidateEnroll
-                .FirstOrDefault(c => c.CandidateId == candidate.CandidateId);
+            return fromDate.AddMonths(packageMonths).AddDays(-1);
+        }
+
+        public CandidateEnrollment AddOrUpdateCandidate(CandidateEnrollModel candidateModel)
+        {
+            if (candidateModel.PackageMonths == null || candidateModel.PackageMonths <= 0)
+                throw new ArgumentException("PackageMonths must be provided and greater than zero.");
+
+            var result = _bioContext.CandidateEnrollment
+                .FirstOrDefault(c => c.CandidateId == candidateModel.CandidateId);
+
+            DateTime fromDate = DateTime.Now;
+            DateTime toDate = CalculateToDate(fromDate, candidateModel.PackageMonths.Value);
 
             if (result == null)
             {
-
-                result = new CandidateEnroll
+                result = new CandidateEnrollment
                 {
-                    Name = candidate.Name,
-                    Gender = candidate.Gender,
-                    Weight = candidate.Weight,
-                    Height = candidate.Height,
-                    BMI = candidate.Weight / (candidate.Height * candidate.Height),
-                    BloodGroup = candidate.BloodGroup,
-                    Age = candidate.Age,
-                    CurrentAddress = candidate.CurrentAddress,
-                    PermanentAddress = candidate.PermanentAddress,
-                    AadharNumber = candidate.AadharNumber,
-                    MobileNumber = candidate.MobileNumber,
-                    EmailId = candidate.EmailId,
-                    Profession = candidate.Profession,
-                    Picture = candidate.Picture,
-                    FingerPrintID = candidate.FingerPrintID,
-                    IsActive = candidate.IsActive,
-                    CreatedDate = candidate.CreatedDate
+                    Name = candidateModel.Name,
+                    Gender = candidateModel.Gender,
+                    Address = candidateModel.Address,
+                    MobileNumber = candidateModel.MobileNumber,
+                    DOB = candidateModel.DOB ?? default,
+                    ServiceId = candidateModel.ServiceId ?? 0,
+                    PackageId = candidateModel.PackageId ?? 0,
+                    PackageAmount = candidateModel.PackageAmount ?? 0,
+                    BalanceAmount = candidateModel.BalanceAmount ?? 0,
+                    FromDate = DateOnly.FromDateTime(fromDate),
+                    ToDate = DateOnly.FromDateTime(toDate),
+                    PaymentStatus = candidateModel.PaymentStatus,
+                    FingerPrintID = candidateModel.FingerPrintID ?? 0,
+                    IsActive = candidateModel.IsActive ?? true,
+                    CreatedDate = candidateModel.CreatedDate ?? DateTime.Now
                 };
-                _bioContext.CandidateEnroll.Add(result);
+
+                _bioContext.CandidateEnrollment.Add(result);
             }
             else
             {
-                result.CandidateId = candidate.CandidateId;
-                result.Name = candidate.Name;
-                result.Gender = candidate.Gender;
-                result.Weight = candidate.Weight;
-                result.Height = candidate.Height;
-                result.BMI = candidate.Weight / (candidate.Height * candidate.Height);
-                result.BloodGroup = candidate.BloodGroup;
-                result.Age = candidate.Age;
-                result.CurrentAddress = candidate.CurrentAddress;
-                result.PermanentAddress = candidate.PermanentAddress;
-                result.AadharNumber = candidate.AadharNumber;
-                result.MobileNumber = candidate.MobileNumber;
-                result.EmailId = candidate.EmailId;
-                result.Profession = candidate.Profession;
-                result.Picture = candidate.Picture;
-                result.FingerPrintID = candidate.FingerPrintID;
-                result.IsActive = candidate.IsActive;
-                result.CreatedDate = candidate.CreatedDate;
+                result.Name = candidateModel.Name;
+                result.Gender = candidateModel.Gender;
+                result.Address = candidateModel.Address;
+                result.MobileNumber = candidateModel.MobileNumber;
+                result.DOB = candidateModel.DOB ?? result.DOB;
+                result.ServiceId = candidateModel.ServiceId ?? result.ServiceId;
+                result.PackageId = candidateModel.PackageId ?? result.PackageId;
+                result.PackageAmount = candidateModel.PackageAmount ?? result.PackageAmount;
+                result.BalanceAmount = candidateModel.BalanceAmount ?? result.BalanceAmount;
+                result.FromDate = DateOnly.FromDateTime(fromDate);
+                result.ToDate = DateOnly.FromDateTime(toDate);
+                result.PaymentStatus = candidateModel.PaymentStatus;
+                result.FingerPrintID = candidateModel.FingerPrintID ?? result.FingerPrintID;
+                result.IsActive = candidateModel.IsActive ?? result.IsActive;
+                result.CreatedDate = candidateModel.CreatedDate ?? result.CreatedDate;
 
-                _bioContext.CandidateEnroll.Update(result);
+                _bioContext.CandidateEnrollment.Update(result);
             }
 
             _bioContext.SaveChanges();
             return result;
         }
 
+
         public bool DeleteBycandidateId(int id)
         {
-            var entity = _bioContext.CandidateEnroll.Find(id);
+            var entity = _bioContext.CandidateEnrollment.Find(id);
             if (entity == null) return false;
 
-            _bioContext.CandidateEnroll.Remove(entity);
+            _bioContext.CandidateEnrollment.Remove(entity);
             _bioContext.SaveChanges();
             return true;
         }
@@ -399,20 +605,11 @@ namespace GymMaintenance.DAL.Services
                               a.TrainerId,
                               a.Password,
                               a.Name,
-                              a.Gender,
-                              a.BloodGroup,
-                              a.FingerPrintID,
                               a.Age,
-                              a.CurrentAddress,
-                              a.PermanentAddress,
-                              a.AadharNumber,
+                              a.Address,
                               a.MobileNumber,
-                              a.EmailId,
-                              a.EmploymentType,
-                              a.Experience,
-                              a.Qualification,
                               a.JoiningDate,
-                              a.Picture,
+                              a.FingerPrintID,
                               a.IsActive,
                               a.CreatedDate
                           }).AsEnumerable().Select(x => new TrainerEnrollmentModel
@@ -420,48 +617,38 @@ namespace GymMaintenance.DAL.Services
                               TrainerId = x.TrainerId,
                               Password = x.Password,
                               Name = x.Name,
-                              Gender = x.Gender,
-                              BloodGroup = x.BloodGroup,
-                              FingerPrintID = x.FingerPrintID,
                               Age = x.Age,
-                              CurrentAddress = x.CurrentAddress,
-                              PermanentAddress = x.PermanentAddress,
-                              AadharNumber = x.AadharNumber,
+                              Address = x.Address,
                               MobileNumber = x.MobileNumber,
-                              EmailId = x.EmailId,
-                              EmploymentType = x.EmploymentType,
-                              Experience = x.Experience,
-                              Qualification = x.Qualification,
                               JoiningDate = x.JoiningDate,
-                              Picture = x.Picture,
+                              FingerPrintID = x.FingerPrintID,
                               IsActive = x.IsActive,
                               CreatedDate = x.CreatedDate
                           }).ToList();
             return result;
+        }
+
+        public List<TrainerEnrollment> SearchTrainerEnrollByName(string keyword)
+        {
+            return _bioContext.TrainerEnrollment
+                              .Where(e => !string.IsNullOrEmpty(e.Name) &&
+                                          e.Name.ToLower().Contains(keyword.ToLower()))
+                              .ToList();
         }
         public TrainerEnrollmentModel GetAlltrainerbyID(int id)
         {
             var result = (from x in _bioContext.TrainerEnrollment where x.TrainerId == id 
                           select new  TrainerEnrollmentModel
                           {
-                            
+
                               TrainerId = x.TrainerId,
                               Password = x.Password,
                               Name = x.Name,
-                              Gender = x.Gender,
-                              BloodGroup = x.BloodGroup,
-                              FingerPrintID = x.FingerPrintID,
                               Age = x.Age,
-                              CurrentAddress = x.CurrentAddress,
-                              PermanentAddress = x.PermanentAddress,
-                              AadharNumber = x.AadharNumber,
+                              Address = x.Address,
                               MobileNumber = x.MobileNumber,
-                              EmailId = x.EmailId,
-                              EmploymentType = x.EmploymentType,
-                              Experience = x.Experience,
-                              Qualification = x.Qualification,
                               JoiningDate = x.JoiningDate,
-                              Picture = x.Picture,
+                              FingerPrintID = x.FingerPrintID,
                               IsActive = x.IsActive,
                               CreatedDate = x.CreatedDate
                           }).FirstOrDefault();
@@ -481,19 +668,11 @@ namespace GymMaintenance.DAL.Services
 
                 result.Password = trainer.Password;
                 result.Name = trainer.Name;
-                result.Gender = trainer.Gender;
-                result.BloodGroup = trainer.BloodGroup;
                 result.Age = trainer.Age;
-                result.CurrentAddress = trainer.CurrentAddress;
-                result.PermanentAddress = trainer.PermanentAddress;
-                result.AadharNumber = trainer.AadharNumber;
+                result.Address = trainer.Address;
+                result.Age = trainer.Age;
                 result.MobileNumber = trainer.MobileNumber;
-                result.EmailId = trainer.EmailId;
-                result.EmploymentType = trainer.EmploymentType;
-                result.Experience = trainer.Experience;
-                result.Qualification = trainer.Qualification;
                 result.JoiningDate = trainer.JoiningDate;
-                result.Picture = trainer.Picture;
                 result.FingerPrintID = trainer.FingerPrintID;
                 result.IsActive = trainer.IsActive;
                 result.CreatedDate = trainer.CreatedDate;
@@ -506,23 +685,14 @@ namespace GymMaintenance.DAL.Services
                 result.TrainerId = trainer.TrainerId;
                 result.Password = trainer.Password;
                 result.Name = trainer.Name;
-                result.Gender = trainer.Gender;
-                result.BloodGroup = trainer.BloodGroup;
                 result.Age = trainer.Age;
-                result.CurrentAddress = trainer.CurrentAddress;
-                result.PermanentAddress = trainer.PermanentAddress;
-                result.AadharNumber = trainer.AadharNumber;
+                result.Address = trainer.Address;
+                result.Age = trainer.Age;
                 result.MobileNumber = trainer.MobileNumber;
-                result.EmailId = trainer.EmailId;
-                result.EmploymentType = trainer.EmploymentType;
-                result.Experience = trainer.Experience;
-                result.Qualification = trainer.Qualification;
                 result.JoiningDate = trainer.JoiningDate;
-                result.Picture = trainer.Picture;
                 result.FingerPrintID = trainer.FingerPrintID;
                 result.IsActive = trainer.IsActive;
                 result.CreatedDate = trainer.CreatedDate;
-
                 _bioContext.TrainerEnrollment.Update(result);
             }
 
@@ -540,12 +710,11 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
 
-        
+
         #endregion
 
         #region Payment
-       
-
+        
         public List<PaymentModel> GetAllpayment()
         {
             var result = (from a in _bioContext.Payment
@@ -554,38 +723,28 @@ namespace GymMaintenance.DAL.Services
                               a.PaymentReceiptNo,
                               a.MemmberId,
                               a.Name,
-                              a.MobileNumber,
                               a.ServiceId,
-                              a.Package,
-                              a.TimeSlot,
-                              a.PlanStartingDate,
-                              a.PlanExpiringDate,
-                              a.PlanAmount,
                               a.BalanceAmount,
-                              a.CurrentPayment,
-                              a.ModeOfPayment,
+                              a.PaymentAmount,
+                              a.Paymentmode,
                               a.collectedby,
                               a.IsActive,
-                              a.CreatedDate
+                              a.CreatedDate,
+                              a.UpdatedDate
                              
                           }).AsEnumerable().Select(x => new PaymentModel
                           {
                               PaymentReceiptNo = x.PaymentReceiptNo,
                               MemmberId = x.MemmberId,
                               Name = x.Name,
-                              MobileNumber = x.MobileNumber,
                               ServiceId = x.ServiceId,
-                              Plan = x.Package,
-                              TimeSlot = x.TimeSlot,
-                              PlanStartingDate = x.PlanStartingDate,
-                              PlanExpiringDate = x.PlanExpiringDate,
-                              PlanAmount = x.PlanAmount,
                               BalanceAmount = x.BalanceAmount,
-                              CurrentPayment = x.CurrentPayment,
-                              ModeOfPayment = x.ModeOfPayment,
-                              collectedby=x.collectedby,
+                              PaymentAmount = x.PaymentAmount,
+                              Paymentmode = x.Paymentmode,
+                              collectedby = x.collectedby,
                               IsActive = x.IsActive,
-                              CreatedDate = x.CreatedDate
+                              CreatedDate = x.CreatedDate,
+                              UpdatedDate = x.UpdatedDate
                              
                           }).ToList();
             return result;
@@ -593,26 +752,21 @@ namespace GymMaintenance.DAL.Services
         
         public PaymentModel GetpaymentbyId( int id,int serviceId)
         {
-            var result = (from a in _bioContext.Payment where a.MemmberId == id && a.ServiceId==serviceId 
+            var result = (from x in _bioContext.Payment where x.MemmberId == id && x.ServiceId==serviceId 
                           select new PaymentModel
                           {
-                             
-                              PaymentReceiptNo = a.PaymentReceiptNo,
-                              MemmberId = a.MemmberId,
-                              Name = a.Name,
-                              MobileNumber = a.MobileNumber,
-                              ServiceId = a.ServiceId,
-                              Plan = a.Package,
-                              TimeSlot = a.TimeSlot,
-                              PlanStartingDate = a.PlanStartingDate,
-                              PlanExpiringDate = a.PlanExpiringDate,
-                              PlanAmount = a.PlanAmount,
-                              BalanceAmount = a.BalanceAmount,
-                              CurrentPayment = a.CurrentPayment,
-                              ModeOfPayment = a.ModeOfPayment,
-                              collectedby = a.collectedby,
-                              IsActive = a.IsActive,
-                              CreatedDate = a.CreatedDate
+
+                              PaymentReceiptNo = x.PaymentReceiptNo,
+                              MemmberId = x.MemmberId,
+                              Name = x.Name,
+                              ServiceId = x.ServiceId,
+                              BalanceAmount = x.BalanceAmount,
+                              PaymentAmount = x.PaymentAmount,
+                              Paymentmode = x.Paymentmode,
+                              collectedby = x.collectedby,
+                              IsActive = x.IsActive,
+                              CreatedDate = x.CreatedDate,
+                              UpdatedDate = x.UpdatedDate
 
                           }).FirstOrDefault();
             return result;
@@ -627,23 +781,18 @@ namespace GymMaintenance.DAL.Services
             var result = _bioContext.Payment.Where(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo).FirstOrDefault();
             if (result == null)
             {
+              
                 result = new Payment();
                 result.MemmberId = pymnnt.MemmberId;
                 result.Name = pymnnt.Name; 
-                result.MobileNumber = pymnnt.MobileNumber;
                 result.ServiceId = pymnnt.ServiceId;
-                result.Package = pymnnt.Package;
-                result.months= Convert.ToInt32( pymnnt.Package.Substring(0, 1));
-                result.TimeSlot = pymnnt.TimeSlot;
-                result.PlanStartingDate = (pymnnt.PlanStartingDate);
-                result.PlanExpiringDate = pymnnt.PlanStartingDate.AddMonths(result.months);
-                result.PlanAmount = pymnnt.PlanAmount;
-                result.CurrentPayment = pymnnt.CurrentPayment;
-                result.BalanceAmount = pymnnt.PlanAmount - pymnnt.CurrentPayment;
-                result.ModeOfPayment = pymnnt.ModeOfPayment;
-                result.collectedby = sessionId;
+                result.BalanceAmount = pymnnt.BalanceAmount;
+                result.PaymentAmount = pymnnt.PaymentAmount;
+                result.Paymentmode = pymnnt.Paymentmode;
+                result.collectedby = pymnnt.collectedby;
                 result.IsActive = pymnnt.IsActive;
                 result.CreatedDate = pymnnt.CreatedDate;
+                result.UpdatedDate = pymnnt.UpdatedDate;
 
                 _bioContext.Payment.Add(result);
             }
@@ -653,20 +802,14 @@ namespace GymMaintenance.DAL.Services
                 result.PaymentReceiptNo = pymnnt.PaymentReceiptNo;
                 result.MemmberId = pymnnt.MemmberId;
                 result.Name = pymnnt.Name;
-                result.MobileNumber = pymnnt.MobileNumber;
                 result.ServiceId = pymnnt.ServiceId;
-                result.Package = pymnnt.Package;
-                result.TimeSlot = pymnnt.TimeSlot;
-                result.PlanStartingDate = pymnnt.PlanStartingDate;
-                result.months = Convert.ToInt32(pymnnt.Package.Substring(0, 1));
-                result.PlanExpiringDate = pymnnt.PlanStartingDate.AddMonths(result.months);
-                result.PlanAmount = pymnnt.PlanAmount;
-                result.CurrentPayment = pymnnt.CurrentPayment;
-                result.BalanceAmount = pymnnt.BalanceAmount-pymnnt.CurrentPayment;
-                result.ModeOfPayment = pymnnt.ModeOfPayment;
-                result.collectedby = sessionId;
+                result.BalanceAmount = pymnnt.BalanceAmount;
+                result.PaymentAmount = pymnnt.PaymentAmount;
+                result.Paymentmode = pymnnt.Paymentmode;
+                result.collectedby = pymnnt.collectedby;
                 result.IsActive = pymnnt.IsActive;
                 result.CreatedDate = pymnnt.CreatedDate;
+                result.UpdatedDate = pymnnt.UpdatedDate;
                 _bioContext.Payment.Update(result);
             }
             _bioContext.SaveChanges();
@@ -698,8 +841,8 @@ namespace GymMaintenance.DAL.Services
                               a.CandidateName,
                               a.FingerPrintID,
                               a.AttendanceDate,
-                              a.InTime,
-                              a.OutTime
+                              a.InTime
+                              
 
 
                           }).AsEnumerable().Select(x => new AttendanceTableModel
@@ -709,8 +852,8 @@ namespace GymMaintenance.DAL.Services
                               CandidateName = x.CandidateName,
                               FingerPrintID = x.FingerPrintID,
                               AttendanceDate = x.AttendanceDate,
-                              InTime = x.InTime,
-                              OutTime = x.OutTime
+                              InTime = x.InTime
+                             
 
                           }).ToList();
             return result;
@@ -728,8 +871,7 @@ namespace GymMaintenance.DAL.Services
                               CandidateName = x.CandidateName,
                               FingerPrintID = x.FingerPrintID,
                               AttendanceDate = x.AttendanceDate,
-                              InTime = x.InTime,
-                              OutTime = x.OutTime
+                              InTime = x.InTime
 
                           }).FirstOrDefault();
             return result;
@@ -748,8 +890,7 @@ namespace GymMaintenance.DAL.Services
                     CandidateName = attendance.CandidateName,
                     FingerPrintID = attendance.FingerPrintID,
                     AttendanceDate = attendance.AttendanceDate,
-                    InTime = attendance.InTime,
-                    OutTime = attendance.OutTime
+                    InTime = attendance.InTime
                 };
 
                 _bioContext.AttendanceTable.Add(result);
@@ -762,7 +903,6 @@ namespace GymMaintenance.DAL.Services
                 result.FingerPrintID = attendance.FingerPrintID;
                 result.AttendanceDate = attendance.AttendanceDate;
                 result.InTime = attendance.InTime;
-                result.OutTime = attendance.OutTime;
 
                 _bioContext.AttendanceTable.Update(result);
             }
@@ -772,10 +912,10 @@ namespace GymMaintenance.DAL.Services
         }
         public bool DeleteByattendanceId(int id)
         {
-            var entity = _bioContext.CandidateEnroll.Find(id);
+            var entity = _bioContext.CandidateEnrollment.Find(id);
             if (entity == null) return false;
 
-            _bioContext.CandidateEnroll.Remove(entity);
+            _bioContext.CandidateEnrollment.Remove(entity);
             _bioContext.SaveChanges();
             return true;
         }
@@ -1008,88 +1148,88 @@ namespace GymMaintenance.DAL.Services
 
         #endregion
 
-        #region ImageUpload
+        //#region ImageUpload
 
 
-        public async Task<byte[]> ConvertToBytesAsync(IFormFile file)
-        {
-            if (file == null || file.Length == 0)
-                return null;
+        ////public async Task<byte[]> ConvertToBytesAsync(IFormFile file)
+        ////{
+        ////    if (file == null || file.Length == 0)
+        ////        return null;
 
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            return memoryStream.ToArray();
-        }
-        public async Task<CandidateEnroll> AddOrUpdateCandidateAsync(CandidateEnroll candidate)
-        {
-            var result = _bioContext.CandidateEnroll
-                .FirstOrDefault(c => c.CandidateId == candidate.CandidateId);
+        ////    using var memoryStream = new MemoryStream();
+        ////    await file.CopyToAsync(memoryStream);
+        ////    return memoryStream.ToArray();
+        ////}
+        //public async Task<CandidateEnroll> AddOrUpdateCandidateAsync(CandidateEnroll candidate)
+        //{
+        //    var result = _bioContext.CandidateEnroll
+        //        .FirstOrDefault(c => c.CandidateId == candidate.CandidateId);
 
-            // Convert uploaded image to byte array
-            byte[] imageData = await ConvertToBytesAsync(candidate.PictureFile);
+        //    // Convert uploaded image to byte array
+        //    //byte[] imageData = await ConvertToBytesAsync(candidate.PictureFile);
 
-            if (result == null)
-            {
-                result = new CandidateEnroll
-                {
-                    Name = candidate.Name,
-                    Gender = candidate.Gender,
-                    Weight = candidate.Weight,
-                    Height = candidate.Height,
-                    Waist = candidate.Waist,
-                    BMI = candidate.BMI,
-                    BloodGroup = candidate.BloodGroup,
-                    Age = candidate.Age,
-                    CurrentAddress = candidate.CurrentAddress,
-                    PermanentAddress = candidate.PermanentAddress,
-                    AadharNumber = candidate.AadharNumber,
-                    MobileNumber = candidate.MobileNumber,
-                    EmailId = candidate.EmailId,
-                    Profession = candidate.Profession,
-                    Picture = imageData,
-                    FingerPrintID = candidate.FingerPrintID,
-                    IsActive = candidate.IsActive,
-                    CreatedDate = candidate.CreatedDate
-                };
+        //    if (result == null)
+        //    {
+        //        result = new CandidateEnroll
+        //        {
+        //            Name = candidate.Name,
+        //            Gender = candidate.Gender,
+        //            Weight = candidate.Weight,
+        //            Height = candidate.Height,
+        //            Waist = candidate.Waist,
+        //            BMI = candidate.BMI,
+        //            BloodGroup = candidate.BloodGroup,
+        //            Age = candidate.Age,
+        //            CurrentAddress = candidate.CurrentAddress,
+        //            PermanentAddress = candidate.PermanentAddress,
+        //            AadharNumber = candidate.AadharNumber,
+        //            MobileNumber = candidate.MobileNumber,
+        //            EmailId = candidate.EmailId,
+        //            Profession = candidate.Profession,
+        //            Picture = imageData,
+        //            FingerPrintID = candidate.FingerPrintID,
+        //            IsActive = candidate.IsActive,
+        //            CreatedDate = candidate.CreatedDate
+        //        };
 
-                _bioContext.CandidateEnroll.Add(result);
-            }
-            else
-            {
-                result.Name = candidate.Name;
-                result.Gender = candidate.Gender;
-                result.Weight = candidate.Weight;
-                result.Height = candidate.Height;
-                result.Waist = candidate.Waist;
-                result.BMI = candidate.BMI;
-                result.BloodGroup = candidate.BloodGroup;
-                result.Age = candidate.Age;
-                result.CurrentAddress = candidate.CurrentAddress;
-                result.PermanentAddress = candidate.PermanentAddress;
-                result.AadharNumber = candidate.AadharNumber;
-                result.MobileNumber = candidate.MobileNumber;
-                result.EmailId = candidate.EmailId;
-                result.Profession = candidate.Profession;
-                result.FingerPrintID = candidate.FingerPrintID;
-                result.IsActive = candidate.IsActive;
-                result.CreatedDate = candidate.CreatedDate;
+        //        _bioContext.CandidateEnroll.Add(result);
+        //    }
+        //    else
+        //    {
+        //        result.Name = candidate.Name;
+        //        result.Gender = candidate.Gender;
+        //        result.Weight = candidate.Weight;
+        //        result.Height = candidate.Height;
+        //        result.Waist = candidate.Waist;
+        //        result.BMI = candidate.BMI;
+        //        result.BloodGroup = candidate.BloodGroup;
+        //        result.Age = candidate.Age;
+        //        result.CurrentAddress = candidate.CurrentAddress;
+        //        result.   PermanentAddress = candidate.PermanentAddress;
+        //        result.AadharNumber = candidate.AadharNumber;
+        //        result.MobileNumber = candidate.MobileNumber;
+        //        result.EmailId = candidate.EmailId;
+        //        result.Profession = candidate.Profession;
+        //        result.FingerPrintID = candidate.FingerPrintID;
+        //        result.IsActive = candidate.IsActive;
+        //        result.CreatedDate = candidate.CreatedDate;
 
-                if (imageData != null)
-                {
-                    result.Picture = imageData;
-                }
+        //        //if (imageData != null)
+        //        //{
+        //        //    result.Picture = imageData;
+        //        //}
 
-                _bioContext.CandidateEnroll.Update(result);
-            }
+        //        _bioContext.CandidateEnroll.Update(result);
+        //    }
 
-            await _bioContext.SaveChangesAsync();
-            return result;
-        }
-
-
+        //    await _bioContext.SaveChangesAsync();
+        //    return result;
+        //}
 
 
-        #endregion
+
+
+        //#endregion
 
         #region ServiceMaster
         public List<ServiceMaster> GetAllServiceMaster()
@@ -1149,7 +1289,171 @@ namespace GymMaintenance.DAL.Services
         {
             throw new NotImplementedException();
         }
+        #endregion
 
+        #region servicetable
+
+        public List<Servicetable> GetallServicetable()
+        {
+            var result = (from ser in _bioContext.Servicetable
+                          select new
+                          {
+                              ser.ServiceId,
+                              ser.ServiceName,
+                              ser.CreateAt,
+                          }).AsEnumerable().Select(x => new Servicetable
+                          {
+
+                              ServiceId = x.ServiceId,
+                              ServiceName = x.ServiceName,
+                              CreateAt = x.CreateAt,
+
+
+                          }).ToList();
+
+            return result;
+
+        }
+
+        public Servicetable GetbyidServicetable(int id)
+        {
+            var result = (from ser in _bioContext.Servicetable
+                          where ser.ServiceId == id
+                          select new Servicetable
+                          {
+                              ServiceId = ser.ServiceId,
+                              ServiceName = ser.ServiceName,
+                              CreateAt = ser.CreateAt,
+                          }).FirstOrDefault();
+            if (result == null)
+            {
+                return new Servicetable();
+            }
+            else
+            {
+                return result;
+            }
+
+        }
+
+        public Servicetable DeletebyidServicetable(int id)
+        {
+            var result = _bioContext.Servicetable.Find(id);
+            _bioContext.Servicetable.Remove(result);
+            _bioContext.SaveChanges(true);
+            return result;
+        }
+
+        public Servicetable AddServicetable(Servicetable servicetable)
+        {
+            var result = _bioContext.Servicetable.Where(x => x.ServiceId == servicetable.ServiceId).FirstOrDefault();
+            if (result == null)
+            {
+                result = new Servicetable();
+                {
+
+                    result.ServiceName = servicetable.ServiceName;
+                    result.CreateAt = servicetable.CreateAt;
+                    _bioContext.Add(result);
+
+
+                }
+
+            }
+            else
+            {
+                result.ServiceId = servicetable.ServiceId;
+                result.ServiceName = servicetable.ServiceName;
+                result.CreateAt = servicetable.CreateAt;
+                _bioContext.Update(result);
+            }
+
+            _bioContext.SaveChanges();
+            return result;
+        }
+        #endregion
+
+        #region packagetable
+
+        public List<Packagetable> GetallPackagetable()
+        {
+            var result = (from pac in _bioContext.Packagetable
+                          select new
+                          {
+                              pac.PackageId,
+                              pac.PackageName,
+                              pac.PackageAmount,
+                              pac.CreatedAt,
+                          }).AsEnumerable().Select(x => new Packagetable
+                          {
+                              PackageId=x.PackageId,
+                              PackageName = x.PackageName,
+                              PackageAmount = x.PackageAmount,
+                              CreatedAt = x.CreatedAt,
+                          }).ToList();
+            return result;
+
+        }
+        public Packagetable GetbyidPackagetable(int id)
+        {
+
+            var result = (from pac in _bioContext.Packagetable
+                          where pac.PackageId == id
+                          select new Packagetable
+
+                          {
+
+                              PackageId = pac.PackageId,
+                              PackageName = pac.PackageName,
+                              PackageAmount = pac.PackageAmount,
+                              CreatedAt = pac.CreatedAt,
+                          }).FirstOrDefault();
+            if (result == null)
+            {
+                return new Packagetable();
+            }
+            else
+            {
+                return result;
+            }
+
+
+        }
+
+        public Packagetable AddPackagetable(Packagetable packagetable)
+        {
+            var result = _bioContext.Packagetable.Where(x => x.PackageId == packagetable.PackageId).FirstOrDefault();
+
+            if (result == null)
+            {
+                result = new Packagetable();
+                {
+                    result.PackageName = packagetable.PackageName;
+                    result.PackageAmount = packagetable.PackageAmount;
+                    result.CreatedAt = packagetable.CreatedAt;
+                    _bioContext.Add(result);
+                }
+
+            }
+            else
+            {
+                result.PackageId = packagetable.PackageId;
+                result.PackageName = packagetable.PackageName;
+                result.PackageAmount = packagetable.PackageAmount;
+                result.CreatedAt = packagetable.CreatedAt;
+                _bioContext.Update(result);
+            }
+
+            _bioContext.SaveChanges();
+            return result;
+        }
+        public Packagetable DeletebyidPackagetable(int id)
+        {
+            var result = _bioContext.Packagetable.Find(id);
+            _bioContext.Packagetable.Remove(result);
+            _bioContext.SaveChanges(true);
+            return result;
+        }
 
         #endregion
     }

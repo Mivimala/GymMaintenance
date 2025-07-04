@@ -16,9 +16,11 @@ namespace GymMaintenance.Model.Entity
 
         public DateTime AttendanceDate { get; set; }
         public TimeSpan InTime { get; set; }
-        public TimeSpan OutTime { get; set; }
 
-        [ForeignKey("FingerPrintID")]
-        public FingerPrint FingerPrint { get; set; }
+        //[ForeignKey("CandidateId")]
+        //public CandidateEnrollment? Candidate { get; set; }
+
+        //[ForeignKey("FingerPrintID")]
+        //public FingerPrint? FingerPrint { get; set; }
     }
 }
