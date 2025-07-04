@@ -31,5 +31,7 @@ namespace GymMaintenance.Model.ViewModel
 
         //public ICollection<AttendanceTable>? Attendances { get; set; }
 
+
+
     }
 }
