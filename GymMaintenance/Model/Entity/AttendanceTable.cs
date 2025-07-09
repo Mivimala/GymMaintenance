@@ -9,8 +9,8 @@ namespace GymMaintenance.Model.Entity
         [Key]
         public int AttendanceId { get; set; }
 
-        public int CandidateId { get; set; }
-        public string CandidateName { get; set; }
+        public int? CandidateId { get; set; }
+        public string? CandidateName { get; set; }
 
         public int FingerPrintID { get; set; }
 
