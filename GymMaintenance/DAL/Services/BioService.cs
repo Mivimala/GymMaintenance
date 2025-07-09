@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-
+using System.IO.Ports;
 
 //using MFS100;
 using Microsoft.Extensions.Caching.Memory;
@@ -26,6 +26,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Reflection;
 using System.Runtime.ConstrainedExecution;
+using System.Management;
 
 namespace GymMaintenance.DAL.Services
 {
@@ -33,11 +34,66 @@ namespace GymMaintenance.DAL.Services
     {
         private readonly BioContext _bioContext;
         private readonly IMemoryCache _cache;
-        public BioService(BioContext bioContext, IMemoryCache cache)
+        private readonly SerialPort _serialPort;
+        private readonly ILogger<BioService> _logger;
+
+        public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger)
 
         {
             _bioContext = bioContext;
             _cache = cache;
+            _logger = logger;
+            string[] availablePorts = SerialPort.GetPortNames();
+            Console.WriteLine("Available Ports: " + string.Join(", ", availablePorts));
+
+            string portToUse = GetCH340PortName();
+
+            if (portToUse == null)
+                throw new Exception("CH340 Arduino device not found. Make sure it's connected.");
+
+            // Continue using the port
+            _serialPort = new SerialPort
+            {
+                PortName = portToUse,
+                BaudRate = 9600,
+                Parity = Parity.None,
+                DataBits = 8,
+                StopBits = StopBits.One,
+                Handshake = Handshake.None,
+                DtrEnable = true,
+                RtsEnable = true,
+                ReadTimeout = 2000,
+                WriteTimeout = 2000
+            };
+
+            // _serialPort.DataReceived += SerialPortDataReceived;
+            _serialPort.DtrEnable = true;
+            _serialPort.RtsEnable = true;
+
+            _serialPort.DataReceived += (s, e) =>
+            {
+                try
+                {
+                    string response = _serialPort.ReadLine();
+                    _logger.LogInformation("Arduino response: " + response);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Error reading from Arduino: " + ex.Message);
+                }
+            };
+
+            try
+            {
+                _logger.LogInformation("Available COM Ports: " + string.Join(", ", SerialPort.GetPortNames()));
+
+                if (!_serialPort.IsOpen)
+                    _serialPort.Open();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error opening serial port: " + ex.Message);
+            }
         }
 
         #region ImageUploadbase64
@@ -860,6 +916,7 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
+        
         public AttendanceTableModel GetAllAttendancebyID(int id)
         {
             var result = (from x in _bioContext.AttendanceTable
@@ -877,11 +934,56 @@ namespace GymMaintenance.DAL.Services
                           }).FirstOrDefault();
             return result;
         }
+        public AttendanceTable AddOrUpdateAttendanceNEW(AttendanceTableModel attendanceTableModel)
+        {
+            var allFP = GetAllfingerprint();
+            var matchedFingerprint = allFP.FirstOrDefault(fp => fp.FingerPrint1 == attendanceTableModel. fpbase64 || fp.FingerPrint2 == attendanceTableModel.fpbase64 || fp.FingerPrint3 == attendanceTableModel.fpbase64);
+            if (matchedFingerprint == null)
+                {
+                return null;
+
+               }
+            else {
+                var FP = _bioContext.AttendanceTable
+                    .FirstOrDefault(a => a.FingerPrintID == matchedFingerprint.FingerPrintID);
+                            var result = _bioContext.AttendanceTable
+                                .FirstOrDefault(a => a.FingerPrintID == FP.AttendanceId || a.CandidateId == attendanceTableModel.CandidateId);
+
+                if (result == null)
+                {
+                    result = new AttendanceTable
+                    {
+                        CandidateId = result.CandidateId,
+                        CandidateName = result.CandidateName,
+                        FingerPrintID = result.FingerPrintID,
+                        AttendanceDate = result.AttendanceDate,
+                        InTime = result.InTime
+                    };
+
+                    _bioContext.AttendanceTable.Add(result);
+                }
+                else
+                {
+                    result.AttendanceId = attendanceTableModel.AttendanceId;
+                    result.CandidateId = attendanceTableModel.CandidateId;
+                    result.CandidateName = attendanceTableModel.CandidateName;
+                    result.FingerPrintID = attendanceTableModel.FingerPrintID;
+                    result.AttendanceDate = attendanceTableModel.AttendanceDate;
+                    result.InTime = attendanceTableModel.InTime;
+
+                    _bioContext.AttendanceTable.Update(result);
+                }
+                _bioContext.SaveChanges();
+                return result;
+            }
+
+            
+        }
 
         public AttendanceTable AddOrUpdateAttendance(AttendanceTable attendance)
         {
             var result = _bioContext.AttendanceTable
-                .FirstOrDefault(a => a.AttendanceId == attendance.AttendanceId);
+                .FirstOrDefault(a => a.FingerPrintID == attendance.AttendanceId  || a.CandidateId == attendance.CandidateId);
 
             if (result == null)
             {
@@ -1455,6 +1557,92 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges(true);
             return result;
         }
+
+        #endregion
+        #region audrino
+
+        // Add this at the top
+
+        public string GetCH340PortName()
+        {
+            using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Name LIKE '%(COM%)'"))
+            {
+                foreach (var device in searcher.Get())
+                {
+                    string name = device["Name"]?.ToString();
+                    if (name != null && name.Contains("CH340"))
+                    {
+                        // Extract COM port from the name, e.g., "USB-SERIAL CH340 (COM5)"
+                        int start = name.LastIndexOf("(COM");
+                        if (start >= 0)
+                        {
+                            int end = name.IndexOf(")", start);
+                            string port = name.Substring(start + 1, end - start - 1); // gets COM5
+                            return port;
+                        }
+                    }
+                }
+            }
+
+            return null; // not found
+        }
+
+        public List<AlertModel> GetAlerts(AlertModel alertModel)
+        {
+            try
+            {
+                SendBuzzCommand(alertModel.IsAlert);
+                Disconnect();
+                return new List<AlertModel> { alertModel };
+                //Disconnect();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Arduino error: {ex.Message}");
+                return new List<AlertModel>();
+            }
+
+        }
+
+
+
+        public void SendBuzzCommand(bool isAlert)
+        {
+            if (!_serialPort.IsOpen)
+                _serialPort.Open();
+
+            string command = isAlert ? "BUZZ_ON" : "BUZZ_OFF";
+            _serialPort.WriteLine(command);
+        }
+
+
+        public void Connect()
+        {
+            if (!_serialPort.IsOpen)
+                _serialPort.Open();
+        }
+
+        public void Disconnect()
+        {
+            if (_serialPort.IsOpen)
+                _serialPort.Close();
+        }
+
+        public void SendCommand(string command)
+        {
+            if (!_serialPort.IsOpen)
+                _serialPort.Open();
+
+            _serialPort.WriteLine(command);
+        }
+
+        private void SerialPortDataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            string response = _serialPort.ReadLine();
+            Console.WriteLine($"Received from Arduino: {response}");
+            // You can store this response or trigger an event/callback
+        }
+
 
         #endregion
     }

@@ -311,7 +311,11 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteByattendanceId(id);
             return Ok();
         }
-
+        [HttpPost]
+        public AttendanceTable AddOrUpdateAttendanceNEW(AttendanceTableModel attendanceTableModel)
+        {
+            return _ibiointerface.AddOrUpdateAttendanceNEW(attendanceTableModel);
+        }
         #endregion
 
 
@@ -520,6 +524,17 @@ namespace GymMaintenance.Controllers
         }
         #endregion
 
+        [HttpPost]
+        public IActionResult GetAlerts(AlertModel alertModel)
+        {
+            var result = _ibiointerface.GetAlerts(alertModel);
+            return Ok(new
+            {
+                message = alertModel.IsAlert ? "Buzzed for 2 seconds" : "Short buzzed",
+                result
+            });
+
+        }
     }
 }
  
