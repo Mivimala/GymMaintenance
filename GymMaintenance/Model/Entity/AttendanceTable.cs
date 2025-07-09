@@ -18,6 +18,7 @@ namespace GymMaintenance.Model.Entity
         public TimeSpan InTime { get; set; }
 
         //[ForeignKey("CandidateId")]
+
         //public CandidateEnrollment? Candidate { get; set; }
 
         //[ForeignKey("FingerPrintID")]

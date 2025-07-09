@@ -19,3 +19,4 @@ namespace GymMaintenance.Model.ViewModel
         public string? fpbase64 { get; set; }
     }
 }
+
