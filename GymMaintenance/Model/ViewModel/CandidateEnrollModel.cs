@@ -26,6 +26,7 @@ namespace GymMaintenance.Model.ViewModel
         public bool? IsActive { get; set; }
         public DateTime? CreatedDate { get; set; }
 
+
         //[ForeignKey("FingerPrintID")]
         //public FingerPrint? FingerPrint { get; set; }
 
