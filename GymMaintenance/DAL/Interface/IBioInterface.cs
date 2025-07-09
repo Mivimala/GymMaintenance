@@ -55,10 +55,11 @@ namespace GymMaintenance.DAL.Interface
         public AttendanceTableModel GetAllAttendancebyID(int id);
         public AttendanceTable AddOrUpdateAttendance(AttendanceTable attendance);
         public bool DeleteByattendanceId(int id);
-        #endregion 
-       
+        public AttendanceTable AddOrUpdateAttendanceNEW(AttendanceTableModel attendanceTableModel);
+        #endregion
 
-         public List<Login> GetAll();
+        public List<AlertModel> GetAlerts(AlertModel alertModel);
+        public List<Login> GetAll();
 
         #region EquipmentEnrollment
         public EquipmentEnrollment AddEquipmentEnrollment(EquipmentEnrollment equipment);
