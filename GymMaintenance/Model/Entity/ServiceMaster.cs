@@ -7,9 +7,8 @@ namespace GymMaintenance.Model.Entity
         [Key]
         public int ServiceId { get; set; }
         public string ServiceName { get; set; }
-        public string PlanDuration { get; set; }
-        public decimal PlanAmount { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime UpdatedDate { get; set; }
+        
+        public DateTime CreatedAt{ get; set; }
+       
     }
 }

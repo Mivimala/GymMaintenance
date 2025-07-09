@@ -82,7 +82,13 @@ namespace GymMaintenance.DAL.Interface
         public bool DeleteServiceMasterbyId(int id);
         #endregion
 
+        #region Audrio
 
+        //void Connect();
+        //void Disconnect();
+        //void SendCommand(string command);
+        public List<AlertModel> GetAlerts(AlertModel alertModel );
+        #endregion
 
     }
 }

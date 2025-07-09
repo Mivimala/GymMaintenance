@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using GymMaintenance.Model.Entity;
+﻿using GymMaintenance.DAL.Interface;
+using GymMaintenance.DAL.Services;
 using GymMaintenance.Data;
-using GymMaintenance.DAL.Interface;
+using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace GymMaintenance.Controllers
@@ -15,7 +16,10 @@ namespace GymMaintenance.Controllers
         public readonly BioContext _ibioContext;
         public readonly IBioInterface _ibiointerface;
         private readonly IMemoryCache _cache;
+     //   private static ArduinoConnector connector = new ArduinoConnector("COM3");
+
        
+
         public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)
         {
             _ibioContext = bioContext;
@@ -351,6 +355,39 @@ namespace GymMaintenance.Controllers
 
         #endregion
 
+
+
+        #region Audrino
+        //[HttpPost("led/on")]
+        //public IActionResult TurnOn()
+        //{
+        //    connector.Connect();
+        //    connector.Send("LED_ON");
+        //    return Ok("LED turned on");
+        //}
+
+        //[HttpPost("led/off")]
+        //public IActionResult TurnOff()
+        //{
+        //    connector.Send("LED_OFF");
+        //    return Ok("LED turned off");
+        //}
+
+        [HttpPost]
+        public IActionResult GetAlerts( AlertModel alertModel)
+        {
+            var result = _ibiointerface .GetAlerts(alertModel);
+            return Ok(new
+            {
+                message = alertModel.IsAlert ? "Buzzed for 2 seconds" : "Short buzzed",
+                result
+            });
+             
+        }
+
+
     }
+    #endregion
+
 }
  
