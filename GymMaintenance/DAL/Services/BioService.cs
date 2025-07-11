@@ -879,10 +879,10 @@ namespace GymMaintenance.DAL.Services
                     ServiceId = candidateModel.ServiceId ?? 0,
                     PackageId = candidateModel.PackageId ?? 0,
                     PackageAmount = candidateModel.PackageAmount ?? 0,
-                    BalanceAmount = candidateModel.BalanceAmount ?? 0,
+                    BalanceAmount = candidateModel.PackageAmount ?? 0,
                     FromDate = DateOnly.FromDateTime(fromDate),
                     ToDate = DateOnly.FromDateTime(toDate),
-                    PaymentStatus = candidateModel.PaymentStatus,
+                    PaymentStatus = "Pending",
                     FingerPrintID = candidateModel.FingerPrintID ?? 0,
                     IsActive = candidateModel.IsActive ?? true,
                     CreatedDate = candidateModel.CreatedDate ?? DateTime.Now
@@ -903,10 +903,11 @@ namespace GymMaintenance.DAL.Services
                 result.BalanceAmount = candidateModel.BalanceAmount ?? result.BalanceAmount;
                 result.FromDate = DateOnly.FromDateTime(fromDate);
                 result.ToDate = DateOnly.FromDateTime(toDate);
-                result.PaymentStatus = candidateModel.PaymentStatus;
+                result.PaymentStatus = result.BalanceAmount == 0 ? "Complete" : "Pending";
                 result.FingerPrintID = candidateModel.FingerPrintID ?? result.FingerPrintID;
                 result.IsActive = candidateModel.IsActive ?? result.IsActive;
                 result.CreatedDate = candidateModel.CreatedDate ?? result.CreatedDate;
+
 
                 _bioContext.CandidateEnrollment.Update(result);
             }
@@ -914,7 +915,6 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges();
             return result;
         }
-
 
         public bool DeleteBycandidateId(int id)
         {
@@ -1104,52 +1104,64 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
-        public Payment Addpayment([FromBody] Payment pymnnt, [FromHeader(Name = "X-Session-ID")] string sessionId)
+        public Payment Addpayment(Payment pymnnt)
         {
-            if (string.IsNullOrEmpty(sessionId))// || !_cache.TryGetValue(sessionId, out string username))
-            {
-                return null;
-            }
-            var result = _bioContext.Payment.Where(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo).FirstOrDefault();
-            if (result == null)
-            {
-              
-                result = new Payment();
-           
-                result.Name = pymnnt.Name; 
-                result.ServiceId = pymnnt.ServiceId;
-                result.BalanceAmount = pymnnt.BalanceAmount;
-                result.PaymentAmount = pymnnt.PaymentAmount;
-                result.Paymentmode = pymnnt.Paymentmode;
-                result.collectedby = pymnnt.collectedby;
-                result.IsActive = pymnnt.IsActive;
-                result.CreatedDate = pymnnt.CreatedDate;
-                result.UpdatedDate = pymnnt.UpdatedDate;
+            var candidate = _bioContext.CandidateEnrollment
+                .FirstOrDefault(c => c.CandidateId == pymnnt.CandiadteId);
 
-                _bioContext.Payment.Add(result);
+            if (candidate == null)
+            {
+                throw new Exception("Candidate not found.");
             }
 
+            var Payment = _bioContext.Payment
+                .FirstOrDefault(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo);
+
+            if (Payment == null)
+            {
+                var newPayment = new Payment
+                {
+                    PaymentReceiptNo = pymnnt.PaymentReceiptNo,
+                    CandiadteId = pymnnt.CandiadteId,
+                    Name = pymnnt.Name,
+                    ServiceId = pymnnt.ServiceId,
+                    PaymentAmount = pymnnt.PaymentAmount,
+                    BalanceAmount = pymnnt.BalanceAmount - pymnnt.PaymentAmount,
+
+                    Paymentmode = pymnnt.Paymentmode,
+                    collectedby = pymnnt.collectedby,
+                    IsActive = pymnnt.IsActive,
+                    CreatedDate = pymnnt.CreatedDate,
+                    UpdatedDate = pymnnt.UpdatedDate
+                };
+                candidate.BalanceAmount -= pymnnt.PaymentAmount;
+                candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+                _bioContext.Payment.Add(newPayment);
+                _bioContext.CandidateEnrollment.Update(candidate);
+                _bioContext.SaveChanges();
+
+                return newPayment;
+            }
             else
             {
-                result.PaymentReceiptNo = pymnnt.PaymentReceiptNo;
-             
-                result.Name = pymnnt.Name;
-                result.ServiceId = pymnnt.ServiceId;
-                result.BalanceAmount = pymnnt.BalanceAmount;
-                result.PaymentAmount = pymnnt.PaymentAmount;
-                result.Paymentmode = pymnnt.Paymentmode;
-                result.collectedby = pymnnt.collectedby;
-                result.IsActive = pymnnt.IsActive;
-                result.CreatedDate = pymnnt.CreatedDate;
-                result.UpdatedDate = pymnnt.UpdatedDate;
-                _bioContext.Payment.Update(result);
+                Payment.CandiadteId = pymnnt.CandiadteId;
+                Payment.Name = pymnnt.Name;
+                Payment.ServiceId = pymnnt.ServiceId;
+                Payment.PaymentAmount = pymnnt.PaymentAmount;
+                Payment.BalanceAmount = pymnnt.BalanceAmount - pymnnt.PaymentAmount;
+                Payment.Paymentmode = pymnnt.Paymentmode;
+                Payment.collectedby = pymnnt.collectedby;
+                Payment.IsActive = pymnnt.IsActive;
+                Payment.UpdatedDate = pymnnt.UpdatedDate;
+                candidate.BalanceAmount -= pymnnt.PaymentAmount;
+                candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+                _bioContext.Payment.Update(Payment);
+
+                _bioContext.CandidateEnrollment.Update(candidate);
+                _bioContext.SaveChanges();
+                return Payment;
             }
-            _bioContext.SaveChanges();
-
-
-            return result;
         }
-
         public bool DeleteBypymntId(int id)
         {
             var entity = _bioContext.Payment.Find(id);
@@ -1697,10 +1709,7 @@ namespace GymMaintenance.DAL.Services
        
 
 
-        public Payment Addpayment(Payment pymnnt)
-        {
-            throw new NotImplementedException();
-        }
+       
         #endregion
 
         #region servicetable
@@ -2072,7 +2081,10 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
-
+        public Payment Addpayment(Payment payment, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 
