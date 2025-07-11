@@ -16,8 +16,8 @@ namespace GymMaintenance.Model.ViewModel
 
         public string? collectedby { get; set; }
         public bool? IsActive { get; set; }
-        public DateOnly? CreatedDate { get; set; }
-        public DateOnly? UpdatedDate { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
 
     }
 }
