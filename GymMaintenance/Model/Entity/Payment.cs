@@ -10,7 +10,7 @@ namespace GymMaintenance.Model.Entity
         [Key]
         public int PaymentReceiptNo { get; set; }
 
-        public int MemmberId { get; set; }
+       
         public string Name { get; set; }
         public int ServiceId { get; set; }
         public decimal BalanceAmount { get; set; }

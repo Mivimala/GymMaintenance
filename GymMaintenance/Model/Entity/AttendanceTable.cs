@@ -16,6 +16,7 @@ namespace GymMaintenance.Model.Entity
 
         public DateTime AttendanceDate { get; set; }
         public TimeSpan InTime { get; set; }
+        public bool IsActive { get; set; }
 
         //[ForeignKey("CandidateId")]
 

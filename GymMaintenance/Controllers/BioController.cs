@@ -37,22 +37,50 @@ namespace GymMaintenance.Controllers
             return File(imageBytes, "image/png");
         }
 
+        //[HttpPost]
+        //public async Task<IActionResult> VerifyFingerprint([FromBody] VerifyFingerprintRequest request)
+        //{
+        //    if (string.IsNullOrWhiteSpace(request.Base64Image))
+        //        return BadRequest("Image is required.");
 
-        [HttpPost]
-        public async Task<IActionResult> VerifyFingerprint([FromBody] VerifyFingerprintRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.Base64Image))
-                return BadRequest("Image is required.");
+        //    bool match = await _ibiointerface.VerifyFingerprintAsync(request.Base64Image);
 
-            bool match = await _ibiointerface.VerifyFingerprintAsync(request.Base64Image);
+        //    if (match)
+        //        return Ok(" Fingerprint matched successfully!");
+        //    else
+        //        return NotFound(" No matching fingerprint found.");
+        //}
 
-            if (match)
-                return Ok(" Fingerprint matched successfully!");
-            else
-                return NotFound(" No matching fingerprint found.");
-        }
+        //[HttpPost]
+        //public async Task<IActionResult> VerifyFingerprint([FromBody] FingerprintRequestModel request)
+        //{
+        //    if (string.IsNullOrWhiteSpace(request.Base64Image))
+        //        return BadRequest("Fingerprint image is required.");
 
+        //    var (success, message) = await _ibiointerface.VerifyFingerprintAsync(request.Base64Image, request.CandidateId);
+
+        //    if (success)
+        //        return Ok(new { success = true, message });
+        //    else
+        //        return BadRequest(new { success = false, message });
+        //}
+
+
+        //[HttpPost("verify-by-fingerprint")]
+        //public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
+        //{
+        //    var result = await _ibiointerface.VerifyFingerprintByImageAsync(request.Base64Image);
+        //    return result.success ? Ok(result.message) : BadRequest(result.message);
+        //}
+
+        //[HttpPost("verify-by-candidate")]
+        //public async Task<IActionResult> VerifyByCandidate([FromBody] CandidateIdRequestModel request)
+        //{
+        //    var result = await _ibiointerface.VerifyAttendanceByCandidateIdAsync(request.CandidateId);
+        //    return result.success ? Ok(result.message) : BadRequest(result.message);
+        //}
         #endregion
+
         #region Login
 
         [HttpPost]
@@ -186,7 +214,63 @@ namespace GymMaintenance.Controllers
             return Ok();
         }
         #endregion
+        #region GetPaymentByDate
 
+
+        
+        [HttpGet("GetPaymentByDate")]
+        public IActionResult GetByDateRange([FromQuery] string fromDate, [FromQuery] string toDate)
+        {
+            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
+            {
+                return BadRequest(new { status = "failed", message = "Invalid date format. Use yyyy-MM-dd." });
+            }
+
+            var (success, message, data) = _ibiointerface.GetPaymentByDate(from, to);
+
+            if (!success)
+            {
+                return NotFound(new { status = "failed", message = message });
+            }
+
+            return Ok(new
+            {
+                status = "success",
+                message = message,
+                total = data?.Count ?? 0,
+                data = data
+            });
+        }
+
+
+
+        #endregion
+
+
+        #region GetCandidateByDate 
+
+        [HttpGet("GetCandidatesByDate")]
+        public async Task<IActionResult> GetCandidatesByDate(DateTime fromDate, DateTime toDate)
+        {
+            var (success, message, data) = await _ibiointerface.GetCandidatesByDate(fromDate, toDate);
+
+            if (!success)
+            {
+                return NotFound(new { status = "failed", message = message });
+            }
+
+            return Ok(new
+            {
+                status = "success",
+                message = message,
+                total = data?.Count ?? 0,
+                data = data
+            });
+        }
+
+
+
+        #endregion
 
         #region Trainer
 

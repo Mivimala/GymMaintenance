@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System.IO.Ports;
-
 //using MFS100;
 using Microsoft.Extensions.Caching.Memory;
 using MimeKit;
@@ -24,9 +22,11 @@ using SkiaSharp;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
+using System.IO.Ports;
+using System.Management;
 using System.Reflection;
 using System.Runtime.ConstrainedExecution;
-using System.Management;
 
 namespace GymMaintenance.DAL.Services
 {
@@ -49,8 +49,10 @@ namespace GymMaintenance.DAL.Services
             string portToUse = GetCH340PortName();
 
             if (portToUse == null)
-                throw new Exception("CH340 Arduino device not found. Make sure it's connected.");
-
+ {
+     _logger.LogWarning("CH340 Arduino device not found. Proceeding without serial port.");
+     return; // Exit constructor early without setting up the serial port
+ }
             // Continue using the port
             _serialPort = new SerialPort
             {
@@ -185,6 +187,261 @@ namespace GymMaintenance.DAL.Services
 
             return false; 
         }
+
+        //public async Task<(bool success, string message)> VerifyFingerprintAsync(string? base64Image, int? candidateId = null)
+        //{
+           
+        //    if (string.IsNullOrWhiteSpace(base64Image) && candidateId == null)
+        //    {
+        //        return (false, "Please provide either a fingerprint image or a candidate ID.");
+        //    }
+
+        //    if (!string.IsNullOrWhiteSpace(base64Image))
+        //    {
+        //        var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
+        //        var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
+
+        //        foreach (var record in allFingerprints)
+        //        {
+        //            if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
+        //                AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
+        //                AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
+        //            {
+        //                var candidate = await _bioContext.CandidateEnrollment
+        //                    .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
+
+        //                if (candidate == null)
+        //                    return (false, "Candidate not found for matched fingerprint.");
+
+        //                bool isActive = candidate.ToDate <= DateOnly.FromDateTime(DateTime.Today);
+
+        //                if (!isActive)
+        //                {
+        //                    var existingAttendances = await _bioContext.AttendanceTable
+        //                        .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+        //                        .ToListAsync();
+
+        //                    foreach (var att in existingAttendances)
+        //                    {
+        //                        att.IsActive = false;
+        //                    }
+        //                    if (existingAttendances.Count > 0)
+        //                    {
+        //                        _bioContext.AttendanceTable.UpdateRange(existingAttendances);
+        //                        await _bioContext.SaveChangesAsync();
+        //                    }
+        //                }
+
+        //                bool alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+        //                    a.FingerPrintID == record.FingerPrintID &&
+        //                    a.AttendanceDate == DateTime.Today);
+
+        //                if (alreadyMarked)
+        //                    return (true, "Attendance already marked today.");
+
+        //                var attendance = new AttendanceTable
+        //                {
+        //                    FingerPrintID = record.FingerPrintID,
+        //                    CandidateId = candidate.CandidateId,
+        //                    CandidateName = candidate.Name,
+        //                    AttendanceDate = DateTime.Today,
+        //                    InTime = DateTime.Now.TimeOfDay,
+        //                    IsActive = isActive
+        //                };
+
+        //                _bioContext.AttendanceTable.Add(attendance);
+        //                await _bioContext.SaveChangesAsync();
+
+        //                return (true, isActive
+        //                    ? "Attendance marked successfully for active candidate."
+        //                    : "Attendance marked as inactive (enrollment expires in the future).");
+        //            }
+        //        }
+        //    }
+        //    if (candidateId != null)
+        //    {
+        //        var candidate = await _bioContext.CandidateEnrollment
+        //            .FirstOrDefaultAsync(c => c.CandidateId == candidateId.Value);
+
+        //        if (candidate == null)
+        //            return (false, "Candidate ID not found.");
+
+        //        bool isActive = candidate.ToDate <= DateOnly.FromDateTime(DateTime.Today);
+
+        //        if (!isActive)
+        //        {
+        //            var existingAttendances = await _bioContext.AttendanceTable
+        //                .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+        //                .ToListAsync();
+
+        //            foreach (var att in existingAttendances)
+        //            {
+        //                att.IsActive = false;
+        //            }
+        //            if (existingAttendances.Count > 0)
+        //            {
+        //                _bioContext.AttendanceTable.UpdateRange(existingAttendances);
+        //                await _bioContext.SaveChangesAsync();
+        //            }
+        //        }
+
+        //        var alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+        //            a.CandidateId == candidate.CandidateId &&
+        //            a.AttendanceDate == DateTime.Today);
+
+        //        if (alreadyMarked)
+        //            return (true, "Attendance already marked today.");
+
+        //        var manualAttendance = new AttendanceTable
+        //        {
+        //            FingerPrintID = 0,
+        //            CandidateId = candidate.CandidateId,
+        //            CandidateName = candidate.Name,
+        //            AttendanceDate = DateTime.Today,
+        //            InTime = DateTime.Now.TimeOfDay,
+        //            IsActive = isActive
+        //        };
+
+        //        _bioContext.AttendanceTable.Add(manualAttendance);
+        //        await _bioContext.SaveChangesAsync();
+
+        //        return (true, isActive
+        //            ? "Attendance marked manually for active candidate."
+        //            : "Manual attendance marked as inactive (enrollment expires in the future).");
+        //    }
+
+        //    return (false, "Fingerprint did not match and Candidate ID was not provided.");
+        //}
+
+        //public async Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image)
+        //{
+        //    if (string.IsNullOrWhiteSpace(base64Image))
+        //        return (false, "Fingerprint image is required.");
+
+        //    var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
+        //    var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
+
+        //    foreach (var record in allFingerprints)
+        //    {
+        //        if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
+        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
+        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
+        //        {
+        //            var candidate = await _bioContext.CandidateEnrollment
+        //                .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
+
+        //            if (candidate == null)
+        //                return (false, "Candidate not found for matched fingerprint.");
+        //            // Get today's date
+        //            var today = DateOnly.FromDateTime(DateTime.Today);
+        //           // var today = DateOnly.ParseExact("11-07-2025", "dd-MM-yyyy", CultureInfo.InvariantCulture);
+        //            // Check if the candidate's end date has already passed
+        //            bool candidateIsInactive = candidate.ToDate < today;
+
+        //            if (candidateIsInactive)
+        //            {
+        //                // Fetch all attendance records for the candidate that are still marked active
+        //                var activeAttendances = await _bioContext.AttendanceTable
+        //                    .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+        //                    .ToListAsync();
+
+        //                // Mark each one as inactive
+        //                foreach (var attendance1 in activeAttendances)
+        //                {
+        //                    attendance1.IsActive = false;
+        //                }
+
+        //                // If any were updated, save changes to the database
+        //                if (activeAttendances.Any())
+        //                {
+        //                    _bioContext.AttendanceTable.UpdateRange(activeAttendances);
+        //                    await _bioContext.SaveChangesAsync();
+        //                }
+        //            }
+
+        //            bool alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+        //                a.FingerPrintID == record.FingerPrintID &&
+        //                a.AttendanceDate == DateTime.Today);
+
+        //            if (alreadyMarked)
+        //                return (true, "Attendance already marked today.");
+
+        //            var attendance = new AttendanceTable
+        //            {
+        //                FingerPrintID = record.FingerPrintID,
+        //                CandidateId = candidate.CandidateId,
+        //                CandidateName = candidate.Name,
+        //                AttendanceDate = DateTime.Today,
+        //                InTime = DateTime.Now.TimeOfDay,
+        //                IsActive = candidateIsInactive
+        //            };
+
+        //            _bioContext.AttendanceTable.Add(attendance);
+        //            await _bioContext.SaveChangesAsync();
+
+        //            return (true, candidateIsInactive
+        //                ? "Attendance marked successfully for active candidate."
+        //                : "Attendance marked as inactive (enrollment expires in the future).");
+        //        }
+        //    }
+
+        //    return (false, "Fingerprint did not match.");
+        //}
+        //public async Task<(bool success, string message)> VerifyAttendanceByCandidateIdAsync(int candidateId)
+        //{
+        //    var candidate = await _bioContext.CandidateEnrollment
+        //        .FirstOrDefaultAsync(c => c.CandidateId == candidateId);
+
+        //    if (candidate == null)
+        //        return (false, "Candidate ID not found.");
+
+        //    bool isActive = candidate.ToDate <= DateOnly.FromDateTime(DateTime.Today);
+
+        //    if (!isActive)
+        //    {
+        //        var existingAttendances = await _bioContext.AttendanceTable
+        //            .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+        //            .ToListAsync();
+
+        //        foreach (var att in existingAttendances)
+        //        {
+        //            att.IsActive = false;
+        //        }
+
+        //        if (existingAttendances.Count > 0)
+        //        {
+        //            _bioContext.AttendanceTable.UpdateRange(existingAttendances);
+        //            await _bioContext.SaveChangesAsync();
+        //        }
+        //    }
+
+        //    var alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+        //        a.CandidateId == candidate.CandidateId &&
+        //        a.AttendanceDate == DateTime.Today);
+
+        //    if (alreadyMarked)
+        //        return (true, "Attendance already marked today.");
+
+        //    var manualAttendance = new AttendanceTable
+        //    {
+        //        FingerPrintID = 0,
+        //        CandidateId = candidate.CandidateId,
+        //        CandidateName = candidate.Name,
+        //        AttendanceDate = DateTime.Today,
+        //        InTime = DateTime.Now.TimeOfDay,
+        //        IsActive = isActive
+        //    };
+
+        //    _bioContext.AttendanceTable.Add(manualAttendance);
+        //    await _bioContext.SaveChangesAsync();
+
+        //    return (true, isActive
+        //        ? "Attendance marked manually for active candidate."
+        //        : "Manual attendance marked as inactive (enrollment expires in the future).");
+        //}
+
+
+
         #endregion
 
 
@@ -777,7 +1034,7 @@ namespace GymMaintenance.DAL.Services
                           select new
                           {
                               a.PaymentReceiptNo,
-                              a.MemmberId,
+                             
                               a.Name,
                               a.ServiceId,
                               a.BalanceAmount,
@@ -791,7 +1048,7 @@ namespace GymMaintenance.DAL.Services
                           }).AsEnumerable().Select(x => new PaymentModel
                           {
                               PaymentReceiptNo = x.PaymentReceiptNo,
-                              MemmberId = x.MemmberId,
+                            
                               Name = x.Name,
                               ServiceId = x.ServiceId,
                               BalanceAmount = x.BalanceAmount,
@@ -808,12 +1065,12 @@ namespace GymMaintenance.DAL.Services
         
         public PaymentModel GetpaymentbyId( int id,int serviceId)
         {
-            var result = (from x in _bioContext.Payment where x.MemmberId == id && x.ServiceId==serviceId 
+            var result = (from x in _bioContext.Payment where x.ServiceId==serviceId 
                           select new PaymentModel
                           {
 
                               PaymentReceiptNo = x.PaymentReceiptNo,
-                              MemmberId = x.MemmberId,
+                            
                               Name = x.Name,
                               ServiceId = x.ServiceId,
                               BalanceAmount = x.BalanceAmount,
@@ -839,7 +1096,7 @@ namespace GymMaintenance.DAL.Services
             {
               
                 result = new Payment();
-                result.MemmberId = pymnnt.MemmberId;
+           
                 result.Name = pymnnt.Name; 
                 result.ServiceId = pymnnt.ServiceId;
                 result.BalanceAmount = pymnnt.BalanceAmount;
@@ -856,7 +1113,7 @@ namespace GymMaintenance.DAL.Services
             else
             {
                 result.PaymentReceiptNo = pymnnt.PaymentReceiptNo;
-                result.MemmberId = pymnnt.MemmberId;
+             
                 result.Name = pymnnt.Name;
                 result.ServiceId = pymnnt.ServiceId;
                 result.BalanceAmount = pymnnt.BalanceAmount;
@@ -884,8 +1141,67 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
         #endregion
+        #region GetPaymentByDate
+
+        
+        public (bool success, string message, List<PaymentModel>? data) GetPaymentByDate(DateOnly Fromdate, DateOnly Todate)
+        {
+            DateTime fromDateTime = Fromdate.ToDateTime(TimeOnly.MinValue);
+            DateTime toDateTime = Todate.ToDateTime(TimeOnly.MinValue);
+
+            var result = _bioContext.Payment
+                .Where(x => x.CreatedDate.ToDateTime(TimeOnly.MinValue) >= fromDateTime
+                         && x.CreatedDate.ToDateTime(TimeOnly.MinValue) <= toDateTime)
+                .Select(x => new PaymentModel
+                {
+                    PaymentReceiptNo = x.PaymentReceiptNo,
+                  
+                    Name = x.Name,
+                    ServiceId = x.ServiceId,
+                    BalanceAmount = x.BalanceAmount,
+                    PaymentAmount = x.PaymentAmount,
+                    Paymentmode = x.Paymentmode,
+                    collectedby = x.collectedby,
+                    IsActive = x.IsActive,
+                    CreatedDate = x.CreatedDate,
+                    UpdatedDate = x.UpdatedDate
+                })
+                .ToList();
+
+            if (result == null || result.Count == 0)
+            {
+                return (false, "No payments found for given date range.", null);
+            }
+
+            return (true, $"{result.Count} payment(s) found.", result);
+        }
 
 
+
+        #endregion
+
+
+        #region GetCandidatesByDate
+
+        public async Task<(bool success, string message, List<CandidateEnrollment>? data)> GetCandidatesByDate(DateTime fromDate, DateTime toDate)
+        {
+            var candidates = await _bioContext.CandidateEnrollment
+                .Where(c => c.CreatedDate.Date >= fromDate.Date && c.CreatedDate.Date <= toDate.Date)
+                .ToListAsync();
+
+            if (candidates == null || candidates.Count == 0)
+            {
+                return (false, "No candidates found for given date range.", null);
+            }
+
+            return (true, $"{candidates.Count} candidate(s) found.", candidates);
+
+
+        }
+
+
+
+        #endregion
         #region Attendance
 
         public List<AttendanceTableModel> GetAllAttendance()
@@ -934,50 +1250,84 @@ namespace GymMaintenance.DAL.Services
                           }).FirstOrDefault();
             return result;
         }
-        public AttendanceTable AddOrUpdateAttendanceNEW(AttendanceTableModel attendanceTableModel)
+        public List<FingerPrint> GetAllFingerprintsRaw()
         {
-            var allFP = GetAllfingerprint();
-            var matchedFingerprint = allFP.FirstOrDefault(fp => fp.FingerPrint1 == attendanceTableModel. fpbase64 || fp.FingerPrint2 == attendanceTableModel.fpbase64 || fp.FingerPrint3 == attendanceTableModel.fpbase64);
-            if (matchedFingerprint == null)
+            return _bioContext.FingerPrint.ToList();
+        }
+        public AttendanceTable AddOrUpdateAttendanceNEW(string? fingerprint, int? candidateid)
+        {
+            FingerPrint? matchedFingerprint = null;
+            CandidateEnrollment? candidate = null;
+            if (!string.IsNullOrWhiteSpace(fingerprint))
+            {
+                try
                 {
-                return null;
+                    var inputBytes = Convert.FromBase64String(fingerprint);
+                    var allFP = GetAllFingerprintsRaw();
 
-               }
-            else {
-                var FP = _bioContext.AttendanceTable
-                    .FirstOrDefault(a => a.FingerPrintID == matchedFingerprint.FingerPrintID);
-                            var result = _bioContext.AttendanceTable
-                                .FirstOrDefault(a => a.FingerPrintID == FP.AttendanceId || a.CandidateId == attendanceTableModel.CandidateId);
+                    matchedFingerprint = allFP.FirstOrDefault(fp =>
+                        (fp.FingerPrint1 != null && fp.FingerPrint1.SequenceEqual(inputBytes)) ||
+                        (fp.FingerPrint2 != null && fp.FingerPrint2.SequenceEqual(inputBytes)) ||
+                        (fp.FingerPrint3 != null && fp.FingerPrint3.SequenceEqual(inputBytes)));
 
-                if (result == null)
-                {
-                    result = new AttendanceTable
-                    {
-                        CandidateId = result.CandidateId,
-                        CandidateName = result.CandidateName,
-                        FingerPrintID = result.FingerPrintID,
-                        AttendanceDate = result.AttendanceDate,
-                        InTime = result.InTime
-                    };
+                    if (matchedFingerprint == null)
+                        return null;
 
-                    _bioContext.AttendanceTable.Add(result);
+                    // Get candidate using FingerPrintID
+                    candidate = _bioContext.CandidateEnrollment
+                        .FirstOrDefault(c => c.FingerPrintID == matchedFingerprint.FingerPrintID);
                 }
-                else
+                catch
                 {
-                    result.AttendanceId = attendanceTableModel.AttendanceId;
-                    result.CandidateId = attendanceTableModel.CandidateId;
-                    result.CandidateName = attendanceTableModel.CandidateName;
-                    result.FingerPrintID = attendanceTableModel.FingerPrintID;
-                    result.AttendanceDate = attendanceTableModel.AttendanceDate;
-                    result.InTime = attendanceTableModel.InTime;
-
-                    _bioContext.AttendanceTable.Update(result);
+                    return null; // Invalid base64 input
                 }
-                _bioContext.SaveChanges();
-                return result;
+            }
+            // Case 2: Only CandidateId is provided
+            else if (candidateid.HasValue && candidateid.Value != 0)
+            {
+                candidate = _bioContext.CandidateEnrollment
+                    .FirstOrDefault(c => c.CandidateId == candidateid);
+
+                if (candidate == null)
+                    return null;
+
+                // Get matching fingerprint using FingerPrintID from candidate record
+                matchedFingerprint = _bioContext.FingerPrint
+                    .FirstOrDefault(fp => fp.FingerPrintID == candidate.FingerPrintID);
             }
 
-            
+            if (matchedFingerprint == null || candidate == null)
+                return null;
+
+            // Check if attendance already exists for today
+            var existingAttendance = _bioContext.AttendanceTable
+                .FirstOrDefault(a =>
+                    a.FingerPrintID == matchedFingerprint.FingerPrintID &&
+                    a.AttendanceDate == DateTime.Today);
+
+            if (existingAttendance == null)
+            {
+                var newAttendance = new AttendanceTable
+                {
+                    CandidateId = candidate.CandidateId,
+                    CandidateName = candidate.Name,
+                    FingerPrintID = matchedFingerprint.FingerPrintID,
+                    AttendanceDate = DateTime.Today,
+                    InTime = DateTime.Now.TimeOfDay
+                };
+
+                _bioContext.AttendanceTable.Add(newAttendance);
+                _bioContext.SaveChanges();
+                return newAttendance;
+            }
+            else
+            {
+                // Update in-time if needed
+                existingAttendance.InTime = DateTime.Now.TimeOfDay;
+                _bioContext.AttendanceTable.Update(existingAttendance);
+                _bioContext.SaveChanges();
+                return existingAttendance;
+            }
         }
 
         public AttendanceTable AddOrUpdateAttendance(AttendanceTable attendance)
@@ -1643,6 +1993,12 @@ namespace GymMaintenance.DAL.Services
             // You can store this response or trigger an event/callback
         }
 
+        public AttendanceTable AddOrUpdateAttendanceNEW(AttendanceTableModel attendanceTableModel)
+        {
+            throw new NotImplementedException();
+        }
+
+       
 
         #endregion
     }
