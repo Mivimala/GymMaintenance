@@ -16,6 +16,8 @@ namespace GymMaintenance.Model.Entity
         //public ICollection<CandidateEnrollment>? Candidates { get; set; }
         //public ICollection<AttendanceTable>? Attendances { get; set; }
 
+
+
         //public ICollection<TrainerEnrollment>? Trainers { get; set; }
         //public ICollection<CandidateEnroll>? Candidates { get; set; }
         //public ICollection<AttendanceTable>? Attendances { get; set; }
