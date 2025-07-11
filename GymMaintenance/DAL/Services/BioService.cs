@@ -314,24 +314,23 @@ namespace GymMaintenance.DAL.Services
         //    return (false, "Fingerprint did not match and Candidate ID was not provided.");
         //}
 
-        public async Task<IActionResult> VerifyFingerprintAsync1(FingerprintRequest request)
+        public async Task<IActionResult> VerifyFingerprintAsync1(string? base64Image, int? candidateId)
         {
-            if (!string.IsNullOrEmpty(request.Base64Image))
+            if (!string.IsNullOrEmpty(base64Image))
             {
-                var (success, message) = await VerifyFingerprintByImageAsync(request.Base64Image);
-                return success ? new OkObjectResult(message) : new BadRequestObjectResult(message);
+                await VerifyFingerprintByImageAsync(base64Image); // Must be synchronous method
+                return new OkObjectResult("Fingerprint image processed.");
             }
-            else if (request.CandidateId.HasValue)
+            else if (candidateId.HasValue)
             {
-                var (success, message) = await VerifyAttendanceByCandidateIdAsync(request.CandidateId.Value);
-                return success ? new OkObjectResult(message) : new BadRequestObjectResult(message);
+                VerifyAttendanceByCandidateIdAsync(candidateId.Value); // Must be synchronous method
+                return new OkObjectResult("Candidate ID processed.");
             }
             else
             {
                 return new BadRequestObjectResult("No fingerprint image or candidate ID was provided.");
             }
         }
-
 
         public async Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image)
         {
@@ -1025,7 +1024,7 @@ namespace GymMaintenance.DAL.Services
                 result.JoiningDate = trainer.JoiningDate;
                 result.FingerPrintID = trainer.FingerPrintID;
                 result.IsActive = trainer.IsActive;
-                result.CreatedDate = DateTime.Now;
+                
                 _bioContext.TrainerEnrollment.Update(result);
             }
 
@@ -1105,63 +1104,137 @@ namespace GymMaintenance.DAL.Services
             return result;
         }
 
-        public Payment Addpayment(Payment pymnnt)
+        //public Payment Addpayment(Payment pymnnt)
+        //{
+        //    var candidate = _bioContext.CandidateEnrollment
+        //        .FirstOrDefault(c => c.CandidateId == pymnnt.CandiadteId);
+
+        //    if (candidate == null)
+        //    {
+        //        throw new Exception("Candidate not found.");
+        //    }
+
+        //    var Payment = _bioContext.Payment
+        //        .FirstOrDefault(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo);
+
+        //    if (Payment == null)
+        //    {
+        //        var newPayment = new Payment
+        //        {
+        //            PaymentReceiptNo = pymnnt.PaymentReceiptNo,
+        //            CandiadteId = pymnnt.CandiadteId,
+        //            Name = pymnnt.Name,
+        //            ServiceId = pymnnt.ServiceId,
+
+        //            PaymentAmount = pymnnt.PaymentAmount,
+        //            BalanceAmount = (pymnnt.BalanceAmount) - pymnnt.PaymentAmount,
+
+        //            Paymentmode = pymnnt.Paymentmode,
+        //            collectedby = pymnnt.collectedby,
+        //            IsActive = pymnnt.IsActive,
+        //            CreatedDate = pymnnt.CreatedDate,
+        //            UpdatedDate = pymnnt.UpdatedDate
+        //        };
+        //        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+        //        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+        //        _bioContext.Payment.Add(newPayment);
+        //        _bioContext.CandidateEnrollment.Update(candidate);
+        //        _bioContext.SaveChanges();
+
+        //        return newPayment;
+        //    }
+        //    else
+        //    {
+        //        Payment.CandiadteId = pymnnt.CandiadteId;
+        //        Payment.Name = pymnnt.Name;
+        //        Payment.ServiceId = pymnnt.ServiceId;
+        //        Payment.PaymentAmount = pymnnt.PaymentAmount;
+        //        Payment.BalanceAmount =( pymnnt.BalanceAmount<= pymnnt.PaymentAmount) ? pymnnt.BalanceAmount - pymnnt.PaymentAmount:"Give the correct Payment amt";
+        //        Payment.Paymentmode = pymnnt.Paymentmode;
+        //        Payment.collectedby = pymnnt.collectedby;
+        //        Payment.IsActive = pymnnt.IsActive;
+        //        Payment.UpdatedDate = pymnnt.UpdatedDate;
+        //        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+        //        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+        //        _bioContext.Payment.Update(Payment);
+
+        //        _bioContext.CandidateEnrollment.Update(candidate);
+        //        _bioContext.SaveChanges();
+        //        return Payment;
+        //    }
+        //}
+        public (Payment? payment, string message) Addpayment(Payment pymnnt)
         {
             var candidate = _bioContext.CandidateEnrollment
                 .FirstOrDefault(c => c.CandidateId == pymnnt.CandiadteId);
 
-            if (candidate == null)
+            if (candidate != null)
             {
-                throw new Exception("Candidate not found.");
-            }
-
-            var Payment = _bioContext.Payment
-                .FirstOrDefault(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo);
-
-            if (Payment == null)
-            {
-                var newPayment = new Payment
+                if (pymnnt.PaymentAmount! > candidate.BalanceAmount)
                 {
-                    PaymentReceiptNo = pymnnt.PaymentReceiptNo,
-                    CandiadteId = pymnnt.CandiadteId,
-                    Name = pymnnt.Name,
-                    ServiceId = pymnnt.ServiceId,
-                    PaymentAmount = pymnnt.PaymentAmount,
-                    BalanceAmount = pymnnt.BalanceAmount - pymnnt.PaymentAmount,
 
-                    Paymentmode = pymnnt.Paymentmode,
-                    collectedby = pymnnt.collectedby,
-                    IsActive = pymnnt.IsActive,
-                    CreatedDate = pymnnt.CreatedDate,
-                    UpdatedDate = pymnnt.UpdatedDate
-                };
-                candidate.BalanceAmount -= pymnnt.PaymentAmount;
-                candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
-                _bioContext.Payment.Add(newPayment);
-                _bioContext.CandidateEnrollment.Update(candidate);
-                _bioContext.SaveChanges();
 
-                return newPayment;
+                    var existingPayment = _bioContext.Payment
+                        .FirstOrDefault(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo);
+
+                    if (existingPayment == null)
+                    {
+                        var newPayment = new Payment
+                        {
+                            PaymentReceiptNo = pymnnt.PaymentReceiptNo,
+                            CandiadteId = pymnnt.CandiadteId,
+                            Name = pymnnt.Name,
+                            ServiceId = pymnnt.ServiceId,
+                            PaymentAmount = pymnnt.PaymentAmount,
+                            BalanceAmount = candidate.BalanceAmount - pymnnt.PaymentAmount,
+                            Paymentmode = pymnnt.Paymentmode,
+                            collectedby = pymnnt.collectedby,
+                            IsActive = pymnnt.IsActive,
+                            CreatedDate = DateTime.Now,
+
+                        };
+
+                        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+                        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+
+                        _bioContext.Payment.Add(newPayment);
+                        _bioContext.CandidateEnrollment.Update(candidate);
+                        _bioContext.SaveChanges();
+
+                        return (newPayment, candidate.PaymentStatus == "Complete"
+                            ? "Payment added. Balance complete."
+                            : "Payment added. Balance pending.");
+                    }
+                    else
+                    {
+                        existingPayment.CandiadteId = pymnnt.CandiadteId;
+                        existingPayment.Name = pymnnt.Name;
+                        existingPayment.ServiceId = pymnnt.ServiceId;
+                        existingPayment.PaymentAmount = pymnnt.PaymentAmount;
+                        existingPayment.BalanceAmount = candidate.BalanceAmount - pymnnt.PaymentAmount;
+                        existingPayment.Paymentmode = pymnnt.Paymentmode;
+                        existingPayment.collectedby = pymnnt.collectedby;
+                        existingPayment.IsActive = pymnnt.IsActive;
+                        existingPayment.UpdatedDate = DateTime.Now;
+
+                        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+                        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+
+                        _bioContext.Payment.Update(existingPayment);
+                        _bioContext.CandidateEnrollment.Update(candidate);
+                        _bioContext.SaveChanges();
+
+                        return (existingPayment, candidate.PaymentStatus == "Complete"
+                            ? "Payment updated, Balance complete." : "Pending");
+
+                    }
+                }
+                return (null, "Candidate not found");
             }
-            else
-            {
-                Payment.CandiadteId = pymnnt.CandiadteId;
-                Payment.Name = pymnnt.Name;
-                Payment.ServiceId = pymnnt.ServiceId;
-                Payment.PaymentAmount = pymnnt.PaymentAmount;
-                Payment.BalanceAmount = pymnnt.BalanceAmount - pymnnt.PaymentAmount;
-                Payment.Paymentmode = pymnnt.Paymentmode;
-                Payment.collectedby = pymnnt.collectedby;
-                Payment.IsActive = pymnnt.IsActive;
-                Payment.UpdatedDate = pymnnt.UpdatedDate;
-                candidate.BalanceAmount -= pymnnt.PaymentAmount;
-                candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
-                _bioContext.Payment.Update(Payment);
+            return (null, "Payment Amount Not Correct.");
 
-                _bioContext.CandidateEnrollment.Update(candidate);
-                _bioContext.SaveChanges();
-                return Payment;
-            }
+            
+
         }
         public bool DeleteBypymntId(int id)
         {
@@ -2115,6 +2188,18 @@ namespace GymMaintenance.DAL.Services
         {
             throw new NotImplementedException();
         }
+
+        public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateOnly fromDate, DateOnly toDate)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IActionResult> VerifyFingerprintAsync1(string base64Image, int candidateId)
+        {
+            throw new NotImplementedException();
+        }
+
+        
     }
 
 
