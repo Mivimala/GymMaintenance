@@ -12,7 +12,7 @@ namespace GymMaintenance.Model.Entity
         public int? CandidateId { get; set; }
         public string? CandidateName { get; set; }
 
-        public int FingerPrintID { get; set; }
+        public int? FingerPrintID { get; set; }
 
         public DateTime AttendanceDate { get; set; }
         public TimeSpan InTime { get; set; }

@@ -190,7 +190,7 @@ namespace GymMaintenance.DAL.Services
 
         //public async Task<(bool success, string message)> VerifyFingerprintAsync(string? base64Image, int? candidateId = null)
         //{
-           
+
         //    if (string.IsNullOrWhiteSpace(base64Image) && candidateId == null)
         //    {
         //        return (false, "Please provide either a fingerprint image or a candidate ID.");
@@ -313,132 +313,151 @@ namespace GymMaintenance.DAL.Services
         //    return (false, "Fingerprint did not match and Candidate ID was not provided.");
         //}
 
-        //public async Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image)
-        //{
-        //    if (string.IsNullOrWhiteSpace(base64Image))
-        //        return (false, "Fingerprint image is required.");
+        public async Task<IActionResult> VerifyFingerprintAsync1(FingerprintRequest request)
+        {
+            if (!string.IsNullOrEmpty(request.Base64Image))
+            {
+                var (success, message) = await VerifyFingerprintByImageAsync(request.Base64Image);
+                return success ? new OkObjectResult(message) : new BadRequestObjectResult(message);
+            }
+            else if (request.CandidateId.HasValue)
+            {
+                var (success, message) = await VerifyAttendanceByCandidateIdAsync(request.CandidateId.Value);
+                return success ? new OkObjectResult(message) : new BadRequestObjectResult(message);
+            }
+            else
+            {
+                return new BadRequestObjectResult("No fingerprint image or candidate ID was provided.");
+            }
+        }
 
-        //    var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
-        //    var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
 
-        //    foreach (var record in allFingerprints)
-        //    {
-        //        if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
-        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
-        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
-        //        {
-        //            var candidate = await _bioContext.CandidateEnrollment
-        //                .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
+        public async Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image)
+        {
+            if (string.IsNullOrWhiteSpace(base64Image))
+                return (false, "Fingerprint image is required.");
 
-        //            if (candidate == null)
-        //                return (false, "Candidate not found for matched fingerprint.");
-        //            // Get today's date
-        //            var today = DateOnly.FromDateTime(DateTime.Today);
-        //           // var today = DateOnly.ParseExact("11-07-2025", "dd-MM-yyyy", CultureInfo.InvariantCulture);
-        //            // Check if the candidate's end date has already passed
-        //            bool candidateIsInactive = candidate.ToDate < today;
+            var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
+            var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
 
-        //            if (candidateIsInactive)
-        //            {
-        //                // Fetch all attendance records for the candidate that are still marked active
-        //                var activeAttendances = await _bioContext.AttendanceTable
-        //                    .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
-        //                    .ToListAsync();
+            foreach (var record in allFingerprints)
+            {
+                if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
+                    AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
+                    AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
+                {
+                    var candidate = await _bioContext.CandidateEnrollment
+                        .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
 
-        //                // Mark each one as inactive
-        //                foreach (var attendance1 in activeAttendances)
-        //                {
-        //                    attendance1.IsActive = false;
-        //                }
+                    if (candidate == null)
+                        return (false, "Candidate not found for matched fingerprint.");
+                    // Get today's date
+                    var today = DateOnly.FromDateTime(DateTime.Today);
+                    // var today = DateOnly.ParseExact("11-07-2025", "dd-MM-yyyy", CultureInfo.InvariantCulture);
+                    // Check if the candidate's end date has already passed
+                    bool candidateIsInactive = candidate.ToDate < today;
 
-        //                // If any were updated, save changes to the database
-        //                if (activeAttendances.Any())
-        //                {
-        //                    _bioContext.AttendanceTable.UpdateRange(activeAttendances);
-        //                    await _bioContext.SaveChangesAsync();
-        //                }
-        //            }
+                    if (candidateIsInactive)
+                    {
+                        // Fetch all attendance records for the candidate that are still marked active
+                        var activeAttendances = await _bioContext.AttendanceTable
+                            .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+                            .ToListAsync();
 
-        //            bool alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
-        //                a.FingerPrintID == record.FingerPrintID &&
-        //                a.AttendanceDate == DateTime.Today);
+                        // Mark each one as inactive
+                        foreach (var attendance1 in activeAttendances)
+                        {
+                            attendance1.IsActive = false;
+                        }
 
-        //            if (alreadyMarked)
-        //                return (true, "Attendance already marked today.");
+                        // If any were updated, save changes to the database
+                        if (activeAttendances.Any())
+                        {
+                            _bioContext.AttendanceTable.UpdateRange(activeAttendances);
+                            await _bioContext.SaveChangesAsync();
+                        }
+                    }
 
-        //            var attendance = new AttendanceTable
-        //            {
-        //                FingerPrintID = record.FingerPrintID,
-        //                CandidateId = candidate.CandidateId,
-        //                CandidateName = candidate.Name,
-        //                AttendanceDate = DateTime.Today,
-        //                InTime = DateTime.Now.TimeOfDay,
-        //                IsActive = candidateIsInactive
-        //            };
+                    bool alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+                        a.FingerPrintID == record.FingerPrintID &&
+                        a.AttendanceDate == DateTime.Today);
 
-        //            _bioContext.AttendanceTable.Add(attendance);
-        //            await _bioContext.SaveChangesAsync();
+                    if (alreadyMarked)
+                        return (true, "Attendance already marked today.");
 
-        //            return (true, candidateIsInactive
-        //                ? "Attendance marked successfully for active candidate."
-        //                : "Attendance marked as inactive (enrollment expires in the future).");
-        //        }
-        //    }
+                    var attendance = new AttendanceTable
+                    {
+                        FingerPrintID = record.FingerPrintID,
+                        CandidateId = candidate.CandidateId,
+                        CandidateName = candidate.Name,
+                        AttendanceDate = DateTime.Today,
+                        InTime = DateTime.Now.TimeOfDay,
+                        IsActive = candidateIsInactive
+                    };
 
-        //    return (false, "Fingerprint did not match.");
-        //}
-        //public async Task<(bool success, string message)> VerifyAttendanceByCandidateIdAsync(int candidateId)
-        //{
-        //    var candidate = await _bioContext.CandidateEnrollment
-        //        .FirstOrDefaultAsync(c => c.CandidateId == candidateId);
+                    _bioContext.AttendanceTable.Add(attendance);
+                    await _bioContext.SaveChangesAsync();
 
-        //    if (candidate == null)
-        //        return (false, "Candidate ID not found.");
+                    return (true, candidateIsInactive
+                        ? "Attendance marked successfully for active candidate."
+                        : "Attendance marked as inactive (enrollment expires in the future).");
+                }
+            }
 
-        //    bool isActive = candidate.ToDate <= DateOnly.FromDateTime(DateTime.Today);
+            return (false, "Fingerprint did not match.");
+        }
+        public async Task<(bool success, string message)> VerifyAttendanceByCandidateIdAsync(int candidateId)
+        {
+            var candidate = await _bioContext.CandidateEnrollment
+                .FirstOrDefaultAsync(c => c.CandidateId == candidateId);
 
-        //    if (!isActive)
-        //    {
-        //        var existingAttendances = await _bioContext.AttendanceTable
-        //            .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
-        //            .ToListAsync();
+            if (candidate == null)
+                return (false, "Candidate ID not found.");
 
-        //        foreach (var att in existingAttendances)
-        //        {
-        //            att.IsActive = false;
-        //        }
+            bool isActive = candidate.ToDate <= DateOnly.FromDateTime(DateTime.Today);
 
-        //        if (existingAttendances.Count > 0)
-        //        {
-        //            _bioContext.AttendanceTable.UpdateRange(existingAttendances);
-        //            await _bioContext.SaveChangesAsync();
-        //        }
-        //    }
+            if (!isActive)
+            {
+                var existingAttendances = await _bioContext.AttendanceTable
+                    .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+                    .ToListAsync();
 
-        //    var alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
-        //        a.CandidateId == candidate.CandidateId &&
-        //        a.AttendanceDate == DateTime.Today);
+                foreach (var att in existingAttendances)
+                {
+                    att.IsActive = false;
+                }
 
-        //    if (alreadyMarked)
-        //        return (true, "Attendance already marked today.");
+                if (existingAttendances.Count > 0)
+                {
+                    _bioContext.AttendanceTable.UpdateRange(existingAttendances);
+                    await _bioContext.SaveChangesAsync();
+                }
+            }
 
-        //    var manualAttendance = new AttendanceTable
-        //    {
-        //        FingerPrintID = 0,
-        //        CandidateId = candidate.CandidateId,
-        //        CandidateName = candidate.Name,
-        //        AttendanceDate = DateTime.Today,
-        //        InTime = DateTime.Now.TimeOfDay,
-        //        IsActive = isActive
-        //    };
+            var alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+                a.CandidateId == candidate.CandidateId &&
+                a.AttendanceDate == DateTime.Today);
 
-        //    _bioContext.AttendanceTable.Add(manualAttendance);
-        //    await _bioContext.SaveChangesAsync();
+            if (alreadyMarked)
+                return (true, "Attendance already marked today.");
 
-        //    return (true, isActive
-        //        ? "Attendance marked manually for active candidate."
-        //        : "Manual attendance marked as inactive (enrollment expires in the future).");
-        //}
+            var manualAttendance = new AttendanceTable
+            {
+                FingerPrintID = null,
+                CandidateId = candidate.CandidateId,
+                CandidateName = candidate.Name,
+                AttendanceDate = DateTime.Today,
+                InTime = DateTime.Now.TimeOfDay,
+                IsActive = isActive
+            };
+
+            _bioContext.AttendanceTable.Add(manualAttendance);
+            await _bioContext.SaveChangesAsync();
+
+            return (true, isActive
+                ? "Attendance marked manually for active candidate."
+                : "Manual attendance marked as inactive (enrollment expires in the future).");
+        }
 
 
 
@@ -1141,67 +1160,7 @@ namespace GymMaintenance.DAL.Services
             return true;
         }
         #endregion
-        #region GetPaymentByDate
-
-        
-        public (bool success, string message, List<PaymentModel>? data) GetPaymentByDate(DateOnly Fromdate, DateOnly Todate)
-        {
-            DateTime fromDateTime = Fromdate.ToDateTime(TimeOnly.MinValue);
-            DateTime toDateTime = Todate.ToDateTime(TimeOnly.MinValue);
-
-            var result = _bioContext.Payment
-                .Where(x => x.CreatedDate.ToDateTime(TimeOnly.MinValue) >= fromDateTime
-                         && x.CreatedDate.ToDateTime(TimeOnly.MinValue) <= toDateTime)
-                .Select(x => new PaymentModel
-                {
-                    PaymentReceiptNo = x.PaymentReceiptNo,
-                  
-                    Name = x.Name,
-                    ServiceId = x.ServiceId,
-                    BalanceAmount = x.BalanceAmount,
-                    PaymentAmount = x.PaymentAmount,
-                    Paymentmode = x.Paymentmode,
-                    collectedby = x.collectedby,
-                    IsActive = x.IsActive,
-                    CreatedDate = x.CreatedDate,
-                    UpdatedDate = x.UpdatedDate
-                })
-                .ToList();
-
-            if (result == null || result.Count == 0)
-            {
-                return (false, "No payments found for given date range.", null);
-            }
-
-            return (true, $"{result.Count} payment(s) found.", result);
-        }
-
-
-
-        #endregion
-
-
-        #region GetCandidatesByDate
-
-        public async Task<(bool success, string message, List<CandidateEnrollment>? data)> GetCandidatesByDate(DateTime fromDate, DateTime toDate)
-        {
-            var candidates = await _bioContext.CandidateEnrollment
-                .Where(c => c.CreatedDate.Date >= fromDate.Date && c.CreatedDate.Date <= toDate.Date)
-                .ToListAsync();
-
-            if (candidates == null || candidates.Count == 0)
-            {
-                return (false, "No candidates found for given date range.", null);
-            }
-
-            return (true, $"{candidates.Count} candidate(s) found.", candidates);
-
-
-        }
-
-
-
-        #endregion
+       
         #region Attendance
 
         public List<AttendanceTableModel> GetAllAttendance()
@@ -1998,8 +1957,128 @@ namespace GymMaintenance.DAL.Services
             throw new NotImplementedException();
         }
 
-       
+        Task<(bool success, string message)> IBioInterface.VerifyFingerprintAsync(string base64Image, int? candidateId)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
+
+
+
+
+
+
+        #region GetPaymentReportByDate
+        public List<PaymentModel> GetPaymentReportByDate(DateOnly fromDate, DateOnly toDate)
+        {
+            var result = _bioContext.Payment
+                .Where(x => x.CreatedDate >= fromDate && x.CreatedDate <= toDate)
+                .Select(x => new PaymentModel
+                {
+                    PaymentReceiptNo = x.PaymentReceiptNo,
+
+                    Name = x.Name,
+                    ServiceId = x.ServiceId,
+                    BalanceAmount = x.BalanceAmount,
+                    PaymentAmount = x.PaymentAmount,
+                    Paymentmode = x.Paymentmode,
+                    collectedby = x.collectedby,
+                    IsActive = x.IsActive,
+                    CreatedDate = x.CreatedDate,
+                    UpdatedDate = x.UpdatedDate
+                })
+                .ToList();
+
+            return result;
+        }
+
+
+        #endregion
+
+        #region GetCandidateReportByDate 
+        public async Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            return await _bioContext.CandidateEnrollment
+                .Where(c => c.CreatedDate.Date >= fromDate.Date && c.CreatedDate.Date <= toDate.Date)
+                .Select(c => new CandidateEnrollModel
+                {
+                    CandidateId = c.CandidateId,
+                    Name = c.Name,
+                    Gender = c.Gender,
+                    Address = c.Address,
+                    MobileNumber = c.MobileNumber,
+                    DOB = c.DOB,
+                    ServiceId = c.ServiceId,
+                    PackageId = c.PackageId,
+                    PackageAmount = c.PackageAmount,
+                    BalanceAmount = c.BalanceAmount,
+                    FromDate = c.FromDate,
+                    ToDate = c.ToDate,
+                    PaymentStatus = c.PaymentStatus,
+                    FingerPrintID = c.FingerPrintID,
+                    IsActive = c.IsActive,
+                    CreatedDate = c.CreatedDate
+                })
+                .ToListAsync();
+        }
+        #endregion
+
+        #region GetAttendanceReportByDate 
+
+
+
+        public async Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            return await _bioContext.AttendanceTable
+                .Where(a => a.AttendanceDate.Date >= fromDate.Date && a.AttendanceDate.Date <= toDate.Date)
+                .Select(a => new AttendanceTableModel
+                {
+                    AttendanceId = a.AttendanceId,
+                    CandidateId = a.CandidateId,
+                    CandidateName = a.CandidateName,
+                    AttendanceDate = a.AttendanceDate,
+                    InTime = a.InTime
+                })
+                .ToListAsync();
+        }
+
+
+
+
+        #endregion
+
+        #region GetTrainerReportByDate
+       
+
+        public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateOnly fromDate, DateOnly toDate)
+        {
+            var result = _bioContext.TrainerEnrollment
+                .Where(x => x.CreatedDate >= fromDate && x.CreatedDate <= toDate)
+                .Select(x => new TrainerEnrollmentModel
+                {
+                    TrainerId = x.TrainerId,
+                    Name = x.Name,
+                    Age = x.Age,
+                    Address = x.Address,
+                    MobileNumber = x.MobileNumber,
+                    JoiningDate = x.JoiningDate,
+                    FingerPrintID = x.FingerPrintID,
+                    IsActive = x.IsActive,
+                    CreatedDate = x.CreatedDate
+                })
+                .ToList();
+
+            return result;
+        }
+
+
     }
+
+
+
+
+
+    #endregion
 }
+

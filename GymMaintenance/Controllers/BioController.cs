@@ -66,19 +66,24 @@ namespace GymMaintenance.Controllers
         //}
 
 
-        //[HttpPost("verify-by-fingerprint")]
-        //public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
-        //{
-        //    var result = await _ibiointerface.VerifyFingerprintByImageAsync(request.Base64Image);
-        //    return result.success ? Ok(result.message) : BadRequest(result.message);
-        //}
+        [HttpPost("verify-by-fingerprint")]
+        public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
+        {
+            var result = await _ibiointerface.VerifyFingerprintByImageAsync(request.Base64Image);
+            return result.success ? Ok(result.message) : BadRequest(result.message);
+        }
 
-        //[HttpPost("verify-by-candidate")]
-        //public async Task<IActionResult> VerifyByCandidate([FromBody] CandidateIdRequestModel request)
-        //{
-        //    var result = await _ibiointerface.VerifyAttendanceByCandidateIdAsync(request.CandidateId);
-        //    return result.success ? Ok(result.message) : BadRequest(result.message);
-        //}
+        [HttpPost("verify-by-candidate")]
+        public async Task<IActionResult> VerifyByCandidate([FromBody] CandidateIdRequestModel request)
+        {
+            var result = await _ibiointerface.VerifyAttendanceByCandidateIdAsync(request.CandidateId);
+            return result.success ? Ok(result.message) : BadRequest(result.message);
+        }
+        [HttpPost("VerifyFingerprintAsync1")]
+        public async Task<IActionResult> VerifyFingerprintAsync1([FromBody] FingerprintRequest request)
+        {
+            return await _ibiointerface.VerifyFingerprintAsync1(request);
+        }
         #endregion
 
         #region Login
@@ -214,63 +219,7 @@ namespace GymMaintenance.Controllers
             return Ok();
         }
         #endregion
-        #region GetPaymentByDate
-
-
-        
-        [HttpGet("GetPaymentByDate")]
-        public IActionResult GetByDateRange([FromQuery] string fromDate, [FromQuery] string toDate)
-        {
-            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
-            {
-                return BadRequest(new { status = "failed", message = "Invalid date format. Use yyyy-MM-dd." });
-            }
-
-            var (success, message, data) = _ibiointerface.GetPaymentByDate(from, to);
-
-            if (!success)
-            {
-                return NotFound(new { status = "failed", message = message });
-            }
-
-            return Ok(new
-            {
-                status = "success",
-                message = message,
-                total = data?.Count ?? 0,
-                data = data
-            });
-        }
-
-
-
-        #endregion
-
-
-        #region GetCandidateByDate 
-
-        [HttpGet("GetCandidatesByDate")]
-        public async Task<IActionResult> GetCandidatesByDate(DateTime fromDate, DateTime toDate)
-        {
-            var (success, message, data) = await _ibiointerface.GetCandidatesByDate(fromDate, toDate);
-
-            if (!success)
-            {
-                return NotFound(new { status = "failed", message = message });
-            }
-
-            return Ok(new
-            {
-                status = "success",
-                message = message,
-                total = data?.Count ?? 0,
-                data = data
-            });
-        }
-
-
-
-        #endregion
+       
 
         #region Trainer
 
@@ -619,6 +568,94 @@ namespace GymMaintenance.Controllers
             });
 
         }
+
+
+        #region GetPaymentReportByDate
+
+
+
+
+        [HttpGet("GetPaymentReportByDate")]
+        public IActionResult GetPaymentReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
+        {
+            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
+            {
+                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            }
+
+            var data = _ibiointerface.GetPaymentReportByDate(from, to);
+
+            if (data == null || data.Count == 0)
+                return NotFound();
+
+            return Ok(data);
+        }
+
+
+
+        #endregion
+
+        #region GetCandidateReportByDate
+
+        [HttpGet("GetCandidateReportByDate")]
+        public async Task<IActionResult> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            var data = await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
+
+            if (data == null || data.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(data);
+        }
+
+        #endregion
+
+
+        #region GetAttendanceReportByDate
+        [HttpGet("GetAttendanceReportByDate")]
+        public async Task<IActionResult> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            var data = await _ibiointerface.GetAttendanceReportByDate(fromDate, toDate);
+
+            if (data == null || data.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(data);
+        }
+
+
+        #endregion
+
+
+        #region GetTrainerReportByDate
+
+
+        [HttpGet("GetTrainerReportByDate")]
+        public IActionResult GetTrainerReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
+        {
+            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
+            {
+                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            }
+
+            var data = _ibiointerface.GetTrainerReportByDate(from, to);
+
+            if (data == null || data.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(data);
+        }
+
+
+
+        #endregion
+
     }
 }
  
