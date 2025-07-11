@@ -575,7 +575,7 @@ namespace GymMaintenance.Controllers
 
 
 
-        [HttpGet("GetPaymentReportByDate")]
+        [HttpGet]
         public IActionResult GetPaymentReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
         {
             if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
@@ -597,7 +597,7 @@ namespace GymMaintenance.Controllers
 
         #region GetCandidateReportByDate
 
-        [HttpGet("GetCandidateReportByDate")]
+        [HttpGet]
         public async Task<IActionResult> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
         {
             var data = await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
@@ -614,7 +614,7 @@ namespace GymMaintenance.Controllers
 
 
         #region GetAttendanceReportByDate
-        [HttpGet("GetAttendanceReportByDate")]
+        [HttpGet]
         public async Task<IActionResult> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
         {
             var data = await _ibiointerface.GetAttendanceReportByDate(fromDate, toDate);
@@ -634,7 +634,7 @@ namespace GymMaintenance.Controllers
         #region GetTrainerReportByDate
 
 
-        [HttpGet("GetTrainerReportByDate")]
+        [HttpGet]
         public IActionResult GetTrainerReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
         {
             if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
