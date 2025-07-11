@@ -1,4 +1,12 @@
-﻿using GymMaintenance.DAL.Interface;
+﻿using System.Data;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Globalization;
+using System.IO.Ports;
+using System.Management;
+using System.Reflection;
+using System.Runtime.ConstrainedExecution;
+using GymMaintenance.DAL.Interface;
 using GymMaintenance.Data;
 using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
@@ -19,14 +27,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Processing;
 using SkiaSharp;
-using System.Data;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Globalization;
-using System.IO.Ports;
-using System.Management;
-using System.Reflection;
-using System.Runtime.ConstrainedExecution;
+using static SkiaSharp.HarfBuzz.SKShaper;
 
 namespace GymMaintenance.DAL.Services
 {
@@ -1007,7 +1008,7 @@ namespace GymMaintenance.DAL.Services
                 result.JoiningDate = trainer.JoiningDate;
                 result.FingerPrintID = trainer.FingerPrintID;
                 result.IsActive = trainer.IsActive;
-                result.CreatedDate = trainer.CreatedDate;
+                result.CreatedDate = DateTime.Now;
 
 
                 _bioContext.TrainerEnrollment.Add(result);
@@ -1024,7 +1025,7 @@ namespace GymMaintenance.DAL.Services
                 result.JoiningDate = trainer.JoiningDate;
                 result.FingerPrintID = trainer.FingerPrintID;
                 result.IsActive = trainer.IsActive;
-                result.CreatedDate = trainer.CreatedDate;
+                result.CreatedDate = DateTime.Now;
                 _bioContext.TrainerEnrollment.Update(result);
             }
 
@@ -1979,7 +1980,7 @@ namespace GymMaintenance.DAL.Services
 
 
         #region GetPaymentReportByDate
-        public List<PaymentModel> GetPaymentReportByDate(DateOnly fromDate, DateOnly toDate)
+        public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
         {
             var result = _bioContext.Payment
                 .Where(x => x.CreatedDate >= fromDate && x.CreatedDate <= toDate)
@@ -1999,7 +2000,14 @@ namespace GymMaintenance.DAL.Services
                 })
                 .ToList();
 
-            return result;
+            if (result != null && result.Count > 0)
+            {
+                return result;
+            }
+            else
+            {
+                return new List<PaymentModel>();
+            }
         }
 
 
@@ -2008,7 +2016,7 @@ namespace GymMaintenance.DAL.Services
         #region GetCandidateReportByDate 
         public async Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
         {
-            return await _bioContext.CandidateEnrollment
+            var result= await _bioContext.CandidateEnrollment
                 .Where(c => c.CreatedDate.Date >= fromDate.Date && c.CreatedDate.Date <= toDate.Date)
                 .Select(c => new CandidateEnrollModel
                 {
@@ -2030,6 +2038,14 @@ namespace GymMaintenance.DAL.Services
                     CreatedDate = c.CreatedDate
                 })
                 .ToListAsync();
+            if (result != null && result.Count > 0)
+            {
+                return result;
+            }
+            else
+            {
+                return new List<CandidateEnrollModel>();
+            }
         }
         #endregion
 
@@ -2039,7 +2055,7 @@ namespace GymMaintenance.DAL.Services
 
         public async Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
         {
-            return await _bioContext.AttendanceTable
+            var result= await _bioContext.AttendanceTable
                 .Where(a => a.AttendanceDate.Date >= fromDate.Date && a.AttendanceDate.Date <= toDate.Date)
                 .Select(a => new AttendanceTableModel
                 {
@@ -2050,6 +2066,14 @@ namespace GymMaintenance.DAL.Services
                     InTime = a.InTime
                 })
                 .ToListAsync();
+            if (result != null && result.Count > 0)
+            {
+                return result;
+            }
+            else
+            {
+                return new List<AttendanceTableModel>();
+            }
         }
 
 
@@ -2060,7 +2084,7 @@ namespace GymMaintenance.DAL.Services
         #region GetTrainerReportByDate
        
 
-        public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateOnly fromDate, DateOnly toDate)
+        public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate)
         {
             var result = _bioContext.TrainerEnrollment
                 .Where(x => x.CreatedDate >= fromDate && x.CreatedDate <= toDate)
@@ -2077,8 +2101,14 @@ namespace GymMaintenance.DAL.Services
                     CreatedDate = x.CreatedDate
                 })
                 .ToList();
-
-            return result;
+            if (result != null && result.Count>0)
+            {
+                return result;
+            }
+            else
+            {
+                return new List<TrainerEnrollmentModel>();
+            }
         }
 
         public Payment Addpayment(Payment payment, string sessionId)

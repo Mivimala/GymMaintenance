@@ -22,7 +22,7 @@ namespace GymMaintenance.Model.Entity
         public int FingerPrintID { get; set; }//FK
 
         public bool IsActive { get; set; }
-        public DateOnly CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; }
 
 
     }

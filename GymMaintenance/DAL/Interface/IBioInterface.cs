@@ -114,7 +114,7 @@ namespace GymMaintenance.DAL.Interface
 
         #region GetPaymentReportByDate
 
-        List<PaymentModel> GetPaymentReportByDate(DateOnly fromDate, DateOnly toDate);
+        List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate);
         #endregion
         #region GetCandidateReportByDate
         Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate);
@@ -124,7 +124,7 @@ namespace GymMaintenance.DAL.Interface
         #endregion
         #region GetTrainerReportByDate
        
-        List<TrainerEnrollmentModel> GetTrainerReportByDate(DateOnly fromDate, DateOnly toDate);
+        List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate);
 
         #endregion
 

@@ -576,19 +576,12 @@ namespace GymMaintenance.Controllers
 
 
         [HttpGet]
-        public IActionResult GetPaymentReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
+       public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
         {
-            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
-            {
-                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
-            }
+           
 
-            var data = _ibiointerface.GetPaymentReportByDate(from, to);
+            return _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
 
-            if (data == null || data.Count == 0)
-                return NotFound();
-
-            return Ok(data);
         }
 
 
@@ -598,16 +591,13 @@ namespace GymMaintenance.Controllers
         #region GetCandidateReportByDate
 
         [HttpGet]
-        public async Task<IActionResult> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
+        public async Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
         {
-            var data = await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
+           return await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
 
-            if (data == null || data.Count == 0)
-            {
-                return NotFound();
-            }
+            
 
-            return Ok(data);
+            
         }
 
         #endregion
@@ -615,16 +605,11 @@ namespace GymMaintenance.Controllers
 
         #region GetAttendanceReportByDate
         [HttpGet]
-        public async Task<IActionResult> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
+        public async Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
         {
-            var data = await _ibiointerface.GetAttendanceReportByDate(fromDate, toDate);
+            return await _ibiointerface.GetAttendanceReportByDate(fromDate, toDate);
 
-            if (data == null || data.Count == 0)
-            {
-                return NotFound();
-            }
-
-            return Ok(data);
+            
         }
 
 
@@ -635,21 +620,16 @@ namespace GymMaintenance.Controllers
 
 
         [HttpGet]
-        public IActionResult GetTrainerReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
-        {
-            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
-            {
-                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
-            }
+        public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate)
+        { 
+            //if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
+            //{
+            //    return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+            //}
 
-            var data = _ibiointerface.GetTrainerReportByDate(from, to);
+            return _ibiointerface.GetTrainerReportByDate(fromDate, toDate);
 
-            if (data == null || data.Count == 0)
-            {
-                return NotFound();
-            }
-
-            return Ok(data);
+           
         }
 
 
