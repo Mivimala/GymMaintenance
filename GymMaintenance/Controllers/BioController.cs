@@ -66,23 +66,23 @@ namespace GymMaintenance.Controllers
         //}
 
 
-        [HttpPost("verify-by-fingerprint")]
+        [HttpPost]
         public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
         {
             var result = await _ibiointerface.VerifyFingerprintByImageAsync(request.Base64Image);
             return result.success ? Ok(result.message) : BadRequest(result.message);
         }
 
-        [HttpPost("verify-by-candidate")]
+        [HttpPost]
         public async Task<IActionResult> VerifyByCandidate([FromBody] CandidateIdRequestModel request)
         {
             var result = await _ibiointerface.VerifyAttendanceByCandidateIdAsync(request.CandidateId);
             return result.success ? Ok(result.message) : BadRequest(result.message);
         }
-        [HttpPost("VerifyFingerprintAsync1")]
-        public async Task<IActionResult> VerifyFingerprintAsync1([FromBody] FingerprintRequest request)
-        {
-            return await _ibiointerface.VerifyFingerprintAsync1(request);
+        [HttpPost]
+        public async Task< IActionResult> VerifyFingerprintAsync1(string? base64Image, int? candidateId)
+        { 
+            return await _ibiointerface.VerifyFingerprintAsync1(base64Image, candidateId);
         }
         #endregion
 
@@ -200,16 +200,9 @@ namespace GymMaintenance.Controllers
         }
 
         [HttpPost]
-        public IActionResult Addpayment(
-    [FromBody] Payment pymnnt,
-    [FromHeader(Name = "X-Session-ID")] string sessionId)
+        public (Payment? payment, string message) Addpayment(Payment pymnnt)
         {
-            var result = _ibiointerface.Addpayment(pymnnt, sessionId);
-
-            if (result == null)
-                return Unauthorized("Session expired or invalid");
-
-            return Ok(result);
+           return _ibiointerface.Addpayment(pymnnt);  
         }
 
         [HttpDelete]
@@ -576,17 +569,36 @@ namespace GymMaintenance.Controllers
 
 
         [HttpGet]
-        public IActionResult GetPaymentReportByDate([FromQuery] string fromDate, [FromQuery] string toDate)
+        //public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
+        //{
+        //    if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
+        //    {
+        //        return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+        //    }
+
+        //    var data = _ibiointerface.GetPaymentReportByDate(from, to);
+
+        //    if (data == null || data.Count == 0)
+        //        return NotFound();
+
+        //    return Ok(data);
+        //}
+        [HttpGet("GetPaymentReportByDate")]
+        public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
         {
-            if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
+            // Convert DateTime to DateOnly
+            var from = DateOnly.FromDateTime(fromDate);
+            var to = DateOnly.FromDateTime(toDate);
+
+            if (from > to)
             {
-                return BadRequest("Invalid date format. Use yyyy-MM-dd.");
+                return BadRequest("From date must be earlier than or equal to To date.");
             }
 
-            var data = _ibiointerface.GetPaymentReportByDate(from, to);
+            var data = _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
 
             if (data == null || data.Count == 0)
-                return NotFound();
+                return NotFound("No payment records found in the given date range.");
 
             return Ok(data);
         }
