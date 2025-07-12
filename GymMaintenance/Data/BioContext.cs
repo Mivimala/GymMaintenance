@@ -22,6 +22,7 @@ namespace GymMaintenance.Data
         public DbSet<EquipmentEnrollment> EquipmentEnrollment { get; set; }
         public DbSet<Servicetable> Servicetable { get;set; }
         public DbSet<Packagetable> Packagetable { get;set; }
+        //public DbSet<BiometricApiResponse> BiometricApiResponse { get; set; }
 
         public DbSet<HealthProgressTracking> HealthProgressTracking { get; set; }   
     }

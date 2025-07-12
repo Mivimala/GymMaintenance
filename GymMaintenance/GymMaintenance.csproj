@@ -5,6 +5,7 @@
 	  
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +24,33 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IO.Ports" Version="9.0.7" />
     <PackageReference Include="System.Management" Version="9.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Neurotec">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.dll</HintPath>
+    </Reference>
+    <Reference Include="Neurotec.Biometrics">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Biometrics.dll</HintPath>
+    </Reference>
+    <Reference Include="Neurotec.Biometrics.Client">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Biometrics.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Neurotec.Devices">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Devices.dll</HintPath>
+    </Reference>
+    <Reference Include="Neurotec.Licensing">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Licensing.dll</HintPath>
+    </Reference>
+    <Reference Include="Neurotec.Media">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Media.dll</HintPath>
+    </Reference>
+    <Reference Include="Neurotec.Media.Processing">
+      <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Media.Processing.dll</HintPath>
+    </Reference>
+	  <None Update="NativeLibs\x64\*.dll">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
 
 </Project>
