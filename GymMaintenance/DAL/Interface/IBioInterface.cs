@@ -23,12 +23,16 @@ namespace GymMaintenance.DAL.Interface
         public FingerPrintModel GetAllfingerprintbyID(int id);
         //public FingerPrint AddFingerPrint(FingerPrint fingerprint);
         Task<FingerPrintModel> AddFingerPrintAsync(FingerPrintModel dto);
-        public Task<(bool success, string message)> VerifyFingerprintAsync(string base64Image, int? candidateId = null);
+      //  public Task<(bool success, string message)> VerifyFingerprintAsync(string base64Image, int? candidateId = null);
         Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image);
         Task<(bool success, string message)> VerifyAttendanceByCandidateIdAsync(int candidateId);
         public  Task<IActionResult> VerifyFingerprintAsync1(string? base64Image, int? candidateId);
+
+
         bool DeleteByfingerprintId(int id);
         //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model);
+
+        //public  Task<(bool, string)> VerifyFingerprintVim(string base64Image);
         #endregion
 
         #region Payment
@@ -36,8 +40,9 @@ namespace GymMaintenance.DAL.Interface
         public PaymentModel GetpaymentbyId(int id, int serviceId);
         public (Payment? payment, string message) Addpayment(Payment pymnnt);
         public bool DeleteBypymntId(int id);
+        public (Payment? payment, string message) AddpaymentMail(Payment pymnnt, string phone);
         #endregion
-       
+
         #region TrainerEnrollment
         public List<TrainerEnrollmentModel> GetAlltrainer();
         public List<TrainerEnrollment> SearchTrainerEnrollByName(string keyword);

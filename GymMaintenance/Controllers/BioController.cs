@@ -5,6 +5,8 @@ using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Neurotec.Biometrics.Client;
+using System.Runtime.InteropServices;
 
 namespace GymMaintenance.Controllers
 {
@@ -15,11 +17,12 @@ namespace GymMaintenance.Controllers
         public readonly BioContext _ibioContext;
         public readonly IBioInterface _ibiointerface;
         private readonly IMemoryCache _cache;
-       
+        private readonly NBiometricClient _biometricClient;
 
-        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)
+        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache, NBiometricClient biometricClient)
         {
             _ibioContext = bioContext;
+            _ibiointerface= bioInterface;
             _ibiointerface = bioInterface;
             _cache = cache;
            
@@ -38,40 +41,17 @@ namespace GymMaintenance.Controllers
         }
 
         //[HttpPost]
-        //public async Task<IActionResult> VerifyFingerprint([FromBody] VerifyFingerprintRequest request)
+        //public async Task<(bool, string)> VerifyFingerprintVim(string base64Image)
         //{
-        //    if (string.IsNullOrWhiteSpace(request.Base64Image))
-        //        return BadRequest("Image is required.");
-
-        //    bool match = await _ibiointerface.VerifyFingerprintAsync(request.Base64Image);
-
-        //    if (match)
-        //        return Ok(" Fingerprint matched successfully!");
-        //    else
-        //        return NotFound(" No matching fingerprint found.");
+        //   return await _ibiointerface.VerifyFingerprintVim(base64Image);
         //}
-
-        //[HttpPost]
-        //public async Task<IActionResult> VerifyFingerprint([FromBody] FingerprintRequestModel request)
-        //{
-        //    if (string.IsNullOrWhiteSpace(request.Base64Image))
-        //        return BadRequest("Fingerprint image is required.");
-
-        //    var (success, message) = await _ibiointerface.VerifyFingerprintAsync(request.Base64Image, request.CandidateId);
-
-        //    if (success)
-        //        return Ok(new { success = true, message });
-        //    else
-        //        return BadRequest(new { success = false, message });
-        //}
-
 
         [HttpPost]
         public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
         {
             var result = await _ibiointerface.VerifyFingerprintByImageAsync(request.Base64Image);
             return result.success ? Ok(result.message) : BadRequest(result.message);
-        }
+         }
 
         [HttpPost]
         public async Task<IActionResult> VerifyByCandidate([FromBody] CandidateIdRequestModel request)
@@ -87,7 +67,11 @@ namespace GymMaintenance.Controllers
         #endregion
 
         #region Login
-
+        [HttpPost]
+        public async Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        {
+            return await _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
+        }
         [HttpPost]
         public IActionResult Login([FromBody] LoginModel login)
         {
@@ -130,12 +114,18 @@ namespace GymMaintenance.Controllers
             return Ok();
         }
 
-        [HttpPost]
 
-        public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        [HttpPost]
+        public (Payment? payment, string message) AddpaymentMail(Payment pymnnt, string phone)
         {
-            return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
+            return _ibiointerface.AddpaymentMail(pymnnt, phone);
         }
+        //[HttpPost]
+
+        //public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        //{
+        //    return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
+        //}
         #endregion
 
 
@@ -211,8 +201,14 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteBypymntId(id);
             return Ok();
         }
+        //[HttpPost]
+
+        //public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        //{
+        //    return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
+        //}
         #endregion
-       
+
 
         #region Trainer
 
