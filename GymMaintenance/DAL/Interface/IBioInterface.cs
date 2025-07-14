@@ -9,7 +9,7 @@ namespace GymMaintenance.DAL.Interface
     {
 
         #region Login
-        Payment Addpayment(Payment payment, string sessionId);
+      
         public List<LoginModel> GetAllLogin();
         public LoginModel GetLoginById(int id);
         public Login AddTrainerlog(Login login);
@@ -19,28 +19,25 @@ namespace GymMaintenance.DAL.Interface
         #endregion
 
         #region FingerPrint
-        public List<FingerPrintModel> GetAllfingerprint();
+     
         public FingerPrintModel GetAllfingerprintbyID(int id);
-        //public FingerPrint AddFingerPrint(FingerPrint fingerprint);
+       
         Task<FingerPrintModel> AddFingerPrintAsync(FingerPrintModel dto);
-      //  public Task<(bool success, string message)> VerifyFingerprintAsync(string base64Image, int? candidateId = null);
         Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image);
         Task<(bool success, string message)> VerifyAttendanceByCandidateIdAsync(int candidateId);
-        public  Task<IActionResult> VerifyFingerprintAsync1(string? base64Image, int? candidateId);
+        
 
 
         bool DeleteByfingerprintId(int id);
-        //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model);
-
-        //public  Task<(bool, string)> VerifyFingerprintVim(string base64Image);
+        
         #endregion
 
         #region Payment
         public List<PaymentModel> GetAllpayment();
         public PaymentModel GetpaymentbyId(int id, int serviceId);
-        public (Payment? payment, string message) Addpayment(Payment pymnnt);
-        public bool DeleteBypymntId(int id);
         public (Payment? payment, string message) AddpaymentMail(Payment pymnnt, string phone);
+        public bool DeleteBypymntId(int id);
+       
         #endregion
 
         #region TrainerEnrollment
@@ -117,21 +114,14 @@ namespace GymMaintenance.DAL.Interface
         #endregion
 
 
-        #region GetPaymentReportByDate
+        #region Reports
 
         List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate);
-        #endregion
-        #region GetCandidateReportByDate
         Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate);
-        #endregion
-        #region GetAttendanceReportByDate
         Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate);
-        #endregion
-        #region GetTrainerReportByDate
-       
         List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate);
-
         #endregion
+       
 
 
     }

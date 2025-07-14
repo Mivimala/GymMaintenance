@@ -40,11 +40,7 @@ namespace GymMaintenance.Controllers
             return File(imageBytes, "image/png");
         }
 
-        //[HttpPost]
-        //public async Task<(bool, string)> VerifyFingerprintVim(string base64Image)
-        //{
-        //   return await _ibiointerface.VerifyFingerprintVim(base64Image);
-        //}
+        
 
         [HttpPost]
         public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
@@ -59,11 +55,7 @@ namespace GymMaintenance.Controllers
             var result = await _ibiointerface.VerifyAttendanceByCandidateIdAsync(request.CandidateId);
             return result.success ? Ok(result.message) : BadRequest(result.message);
         }
-        [HttpPost]
-        public async Task< IActionResult> VerifyFingerprintAsync1(string? base64Image, int? candidateId)
-        { 
-            return await _ibiointerface.VerifyFingerprintAsync1(base64Image, candidateId);
-        }
+       
         #endregion
 
         #region Login
@@ -120,22 +112,13 @@ namespace GymMaintenance.Controllers
         {
             return _ibiointerface.AddpaymentMail(pymnnt, phone);
         }
-        //[HttpPost]
-
-        //public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
-        //{
-        //    return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
-        //}
+        
         #endregion
 
 
         #region FingerPrint
 
-        [HttpGet]
-        public List<FingerPrintModel> GetAllfingerprint()
-        {
-            return _ibiointerface.GetAllfingerprint();
-        }
+       
 
         [HttpGet("{id:int}")]
 
@@ -163,14 +146,7 @@ namespace GymMaintenance.Controllers
             return Ok();
         }
 
-        //[HttpPost]
-        //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model)
-        //{
-        //    return _ibiointerface.SaveFingerprint(model);
-        //}
-
-
-
+        
         #endregion
 
         #region Payment
@@ -189,11 +165,7 @@ namespace GymMaintenance.Controllers
             return result;
         }
 
-        [HttpPost]
-        public (Payment? payment, string message) Addpayment(Payment pymnnt)
-        {
-           return _ibiointerface.Addpayment(pymnnt);  
-        }
+       
 
         [HttpDelete]
         public IActionResult DeleteBypymntId(int id)
@@ -201,12 +173,7 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteBypymntId(id);
             return Ok();
         }
-        //[HttpPost]
-
-        //public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
-        //{
-        //    return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
-        //}
+        
         #endregion
 
 
@@ -559,47 +526,10 @@ namespace GymMaintenance.Controllers
         }
 
 
-        #region GetPaymentReportByDate
+        #region Reports
 
-
-
-
-        [HttpGet]
-        //  public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate);
-        //public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
-        //{
-        //    if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
-        //    {
-        //        return BadRequest("Invalid date format. Use yyyy-MM-dd.");
-        //    }
-
-        //    var data = _ibiointerface.GetPaymentReportByDate(from, to);
-
-        //    if (data == null || data.Count == 0)
-        //        return NotFound();
-
-        //    return Ok(data);
-        //}
-
-        //public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
-        //{
-
-        //    // Convert DateTime to DateOnly
-        //    var from = DateOnly.FromDateTime(fromDate);
-        //    var to = DateOnly.FromDateTime(toDate);
-
-        //    if (from > to)
-        //    {
-        //        return BadRequest("From date must be earlier than or equal to To date.");
-        //    }
-
-        //    var data = _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
-
-        //    return _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
-        //    if (data == null || data.Count == 0)
-        //        return NotFound("No payment records found in the given date range.");
-
-        //}
+               
+        
         [HttpGet]
 
        public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
@@ -607,57 +537,32 @@ namespace GymMaintenance.Controllers
             return _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
         }
 
-
-
-        #endregion
-
-        #region GetCandidateReportByDate
-
         [HttpGet]
         public async Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
         {
-           return await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
+            return await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
 
-            
 
-            
         }
-
-        #endregion
-
-
-        #region GetAttendanceReportByDate
         [HttpGet]
         public async Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
         {
             return await _ibiointerface.GetAttendanceReportByDate(fromDate, toDate);
 
-            
+
         }
-
-
-        #endregion
-
-
-        #region GetTrainerReportByDate
-
 
         [HttpGet]
         public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate)
-        { 
-            //if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
-            //{
-            //    return BadRequest("Invalid date format. Use yyyy-MM-dd.");
-            //}
+        {
 
             return _ibiointerface.GetTrainerReportByDate(fromDate, toDate);
 
-           
+
         }
-
-
-
         #endregion
+             
+               
 
     }
 }
