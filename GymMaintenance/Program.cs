@@ -2,7 +2,7 @@ using GymMaintenance.DAL.Interface;
 using GymMaintenance.DAL.Services;
 using GymMaintenance.Data;
 using Microsoft.EntityFrameworkCore;
-using Neurotec.Biometrics.Client;
+//using Neurotec.Biometrics.Client;
 
 
 
@@ -32,7 +32,7 @@ options.UseMySql(
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
     )
 );
-builder.Services.AddSingleton<NBiometricClient>();
+//builder.Services.AddSingleton<NBiometricClient>();
 var nativePath = Path.Combine(AppContext.BaseDirectory, "NativeLibs", "x64");
 Environment.SetEnvironmentVariable("PATH", nativePath + ";" + Environment.GetEnvironmentVariable("PATH"));
 

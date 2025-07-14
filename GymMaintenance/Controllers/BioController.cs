@@ -5,7 +5,7 @@ using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Neurotec.Biometrics.Client;
+//using Neurotec.Biometrics.Client;
 using System.Runtime.InteropServices;
 
 namespace GymMaintenance.Controllers
@@ -17,15 +17,15 @@ namespace GymMaintenance.Controllers
         public readonly BioContext _ibioContext;
         public readonly IBioInterface _ibiointerface;
         private readonly IMemoryCache _cache;
-        private readonly NBiometricClient _biometricClient;
+        //private readonly NBiometricClient _biometricClient;
 
-        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache, NBiometricClient biometricClient)
+        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)//, NBiometricClient biometricClient)
         {
             _ibioContext = bioContext;
-            _ibiointerface= bioInterface;
+            _ibiointerface = bioInterface;
             _ibiointerface = bioInterface;
             _cache = cache;
-           
+
         }
 
         #region imageuploadbase64
@@ -565,7 +565,7 @@ namespace GymMaintenance.Controllers
 
 
         [HttpGet]
-       public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
+        //  public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate);
         //public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
         //{
         //    if (!DateOnly.TryParse(fromDate, out var from) || !DateOnly.TryParse(toDate, out var to))
@@ -580,25 +580,31 @@ namespace GymMaintenance.Controllers
 
         //    return Ok(data);
         //}
-        [HttpGet("GetPaymentReportByDate")]
-        public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
+
+        //public IActionResult GetPaymentReportByDate([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
+        //{
+
+        //    // Convert DateTime to DateOnly
+        //    var from = DateOnly.FromDateTime(fromDate);
+        //    var to = DateOnly.FromDateTime(toDate);
+
+        //    if (from > to)
+        //    {
+        //        return BadRequest("From date must be earlier than or equal to To date.");
+        //    }
+
+        //    var data = _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
+
+        //    return _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
+        //    if (data == null || data.Count == 0)
+        //        return NotFound("No payment records found in the given date range.");
+
+        //}
+        [HttpGet]
+
+       public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
         {
-           
-            // Convert DateTime to DateOnly
-            var from = DateOnly.FromDateTime(fromDate);
-            var to = DateOnly.FromDateTime(toDate);
-
-            if (from > to)
-            {
-                return BadRequest("From date must be earlier than or equal to To date.");
-            }
-
-            var data = _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
-
             return _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
-            if (data == null || data.Count == 0)
-                return NotFound("No payment records found in the given date range.");
-
         }
 
 
