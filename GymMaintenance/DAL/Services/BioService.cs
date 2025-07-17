@@ -2707,6 +2707,11 @@ namespace GymMaintenance.DAL.Services
             throw new NotImplementedException();
         }
 
+        public AttendanceTable? AddOrUpdateAttendanceUsingFP(AttendanceTableModel attendance)
+        {
+            throw new NotImplementedException();
+        }
+
         //public Task<byte[]> ConvertBase64ToTemplateAsync(string base64Image)
         //{
         //    throw new NotImplementedException();
