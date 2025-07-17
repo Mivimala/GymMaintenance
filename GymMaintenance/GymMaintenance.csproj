@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Emgu.CV" Version="4.5.5.4823" />
+    <PackageReference Include="Emgu.CV.Bitmap" Version="4.5.5.4823" />
+    <PackageReference Include="Emgu.CV.runtime.windows" Version="4.5.5.4823" />
+	  
     <PackageReference Include="MailKit" Version="4.12.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
       <PrivateAssets>all</PrivateAssets>
@@ -21,7 +25,9 @@
     <PackageReference Include="SecuGen.NetFramework" Version="1.0.3" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.0" />
     <PackageReference Include="SkiaSharp" Version="2.88.6" />
+    <PackageReference Include="SourceAFIS" Version="3.14.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.7" />
     <PackageReference Include="System.IO.Ports" Version="9.0.7" />
     <PackageReference Include="System.Management" Version="9.0.7" />
   </ItemGroup>
@@ -48,6 +54,24 @@
     <Reference Include="Neurotec.Media.Processing">
       <HintPath>C:\Users\STARWORLD\Desktop\sdk fingreprint\Neurotec_Biometric_2025_1_SDK\Bin\Win64_x64\Neurotec.Media.Processing.dll</HintPath>
     </Reference>
+	  <Reference Include="NFExtractor">
+		  <HintPath>libs\VeriFinger\NFExtractor.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NFMatcher">
+		  <HintPath>libs\VeriFinger\NFMatcher.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NCore">
+		  <HintPath>libs\VeriFinger\NCore.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NImage">
+		  <HintPath>libs\VeriFinger\NImage.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NFRecord">
+		  <HintPath>libs\VeriFinger\NFRecord.dll</HintPath>
+	  </Reference>
+	  <Reference Include="NLicensing">
+		  <HintPath>libs\VeriFinger\NLicensing.dll</HintPath>
+	  </Reference>
 	  <None Update="NativeLibs\x64\*.dll">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>

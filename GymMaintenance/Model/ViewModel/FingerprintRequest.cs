@@ -2,7 +2,7 @@
 {
     public class FingerprintRequest
     {
-        public string? Base64Image { get; set; }
-        public int? CandidateId { get; set; }
+        public string ProbeBase64 { get; set; }
+
     }
 }
