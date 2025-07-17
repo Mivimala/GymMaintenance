@@ -43,6 +43,8 @@ namespace GymMaintenance.DAL.Services
 
 
 
+
+
      //   public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger, NBiometricClient biometricClient)
 
       
