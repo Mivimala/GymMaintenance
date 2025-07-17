@@ -42,7 +42,8 @@ namespace GymMaintenance.DAL.Services
         private const string Components = "Biometrics.FingerExtraction,Biometrics.FingerMatching";
 
 
-        public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger, NBiometricClient biometricClient)
+      
+        public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger) 
 
         {
         
