@@ -1,4 +1,10 @@
-﻿using GymMaintenance.DAL.Interface;
+﻿using Emgu.CV;
+using Emgu.CV.CvEnum;
+using Emgu.CV.Features2D;
+using Emgu.CV.Structure;
+using Emgu.CV.Util;
+using Emgu.CV.XObjdetect;
+using GymMaintenance.DAL.Interface;
 using GymMaintenance.Data;
 using GymMaintenance.Helper;
 using GymMaintenance.Model.Entity;
@@ -13,11 +19,6 @@ using Neurotec.Biometrics;
 using Neurotec.Biometrics.Client;
 using Neurotec.Images;
 using Neurotec.Licensing;
-//using Neurotec.Biometrics;
-//using Neurotec.Biometrics.Client;
-
-//using Neurotec.IO;
-using QuestPDF.Infrastructure;
 using SixLabors.ImageSharp;
 //using MFS100;
 using SourceAFIS;
@@ -27,9 +28,6 @@ using System.Drawing.Imaging;
 using System.IO.Ports;
 using System.Management;
 using System.Runtime.InteropServices;
-//using Neurotec.Images;
-using SkiaSharp;
-using static SkiaSharp.HarfBuzz.SKShaper;
 
 namespace GymMaintenance.DAL.Services
 {
@@ -39,18 +37,22 @@ namespace GymMaintenance.DAL.Services
         private readonly IMemoryCache _cache;
         private readonly SerialPort _serialPort;
         private readonly ILogger<BioService> _logger;
+
         private readonly NBiometricClient _biometricClient;
         private const string Components = "Biometrics.FingerExtraction,Biometrics.FingerMatching";
 
 
-        public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger, NBiometricClient biometricClient)
 
+     //   public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger, NBiometricClient biometricClient)
+
+      
         public BioService(BioContext bioContext, IMemoryCache cache, ILogger<BioService> logger) 
+
 
         {
         
             _bioContext = bioContext;
-          
+           // _biometricClient = biometricClient;
               _cache = cache;
             _logger = logger;
             string[] availablePorts = SerialPort.GetPortNames();
@@ -109,11 +111,15 @@ namespace GymMaintenance.DAL.Services
         }
 
 
+
+
+
         public void InitializeLicense()
         {
             if (!NLicense.ObtainComponents("/local", 5000, Components))
                 throw new Exception("License not obtained for VeriFinger components.");
         }
+
 
         public NTemplate CreateTemplateFromBase64(string base64Image)
         {
@@ -443,6 +449,99 @@ namespace GymMaintenance.DAL.Services
                 };
             }
         }
+
+
+        #endregion
+
+        #region ImageUploadbase64
+        //public async task<byte[]> convertbase64totemplateasync(string base64image)
+        //{
+        //    if (base64image.contains(","))
+        //    {
+        //        base64image = base64image.substring(base64image.indexof(",") + 1);
+        //    }
+
+        //    byte[] imagebytes = convert.frombase64string(base64image);
+
+        //    using var inputstream = new memorystream(imagebytes);
+        //    using var image = await sixlabors.imagesharp.image.loadasync(inputstream);
+
+        //    image.mutate(x => x.resize(new resizeoptions
+        //    {
+        //        size = new sixlabors.imagesharp.size(500, 500),
+        //        mode = resizemode.max
+        //    }));
+
+        //    using var outputstream = new memorystream();
+        //    await image.saveasync(outputstream, new pngencoder());
+
+        //    return outputstream.toarray();
+        //}
+
+        //public bool arefingerprintsmatching(byte[] a, byte[] b)
+        //{
+        //    if (a == null || b == null || a.length != b.length)
+        //        return false;
+
+        //    for (int i = 0;  i < a.length; i++)
+        //    {
+        //        if (a[i] != b[i]) return false;
+        //    }
+
+        //    return true;
+        //}
+        //public async Task<bool> VerifyFingerprintAsync(string base64Image)
+        //{
+        //    var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
+
+        //    var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
+
+        //    foreach (var record in allFingerprints)
+        //    {
+        //        if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
+        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
+        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
+        //        {
+        //            var candidate = await _bioContext.CandidateEnrollment
+        //                .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
+
+        //            if (candidate == null)
+        //                return false;
+
+        //            var alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+        //                a.FingerPrintID == record.FingerPrintID &&
+        //                a.AttendanceDate == DateTime.Today);
+
+        //            if (!alreadyMarked)
+        //            {
+        //                try
+        //                {
+        //                    var attendance = new AttendanceTable
+        //                    {
+        //                        FingerPrintID = record.FingerPrintID,
+        //                        CandidateId = candidate.CandidateId,
+        //                        CandidateName = candidate.Name,
+        //                        AttendanceDate = DateTime.Today,
+        //                        InTime = DateTime.Now.TimeOfDay
+        //                    };
+
+        //                    _bioContext.AttendanceTable.Add(attendance);
+        //                    await _bioContext.SaveChangesAsync();
+        //                }
+        //                catch (DbUpdateException ex)
+        //                {
+        //                    var inner = ex.InnerException?.Message ?? ex.Message;
+        //                    Console.WriteLine("Error saving attendance: " + inner);
+        //                    throw;
+        //                }
+        //            }
+
+        //            return true;
+        //        }
+        //    }
+
+        //    return false; 
+        //}
 
         //public async Task<(bool success, string message)> VerifyFingerprintAsync(string? base64Image, int? candidateId = null)
         //{
@@ -808,7 +907,11 @@ namespace GymMaintenance.DAL.Services
         //    _bioContext.AttendanceTable.Add(attendance);
         //    await _bioContext.SaveChangesAsync();
 
-        
+        //    return (true, !isExpired
+        //        ? "Attendance marked successfully for active candidate."
+        //        : "Attendance marked as inactive (enrollment expired).");
+        //}
+
         #endregion
 
 
@@ -880,7 +983,6 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges();
             return true;
         }
-        #endregion
         #region Email
         public async Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
         {
@@ -943,7 +1045,11 @@ namespace GymMaintenance.DAL.Services
 
 
         #endregion
-               
+
+
+
+
+        #endregion
         #region  FingerPrint
 
         public List<FingerPrintModel> GetAllfingerprint()
@@ -978,52 +1084,6 @@ namespace GymMaintenance.DAL.Services
                 CreatedDate = x.CreatedDate
             };
         }
-
-        public async Task<FingerPrintModel> AddFingerPrintAsync(FingerPrintModel dto)
-        {
-            var result = _bioContext.FingerPrint.FirstOrDefault(x => x.FingerPrintID == dto.FingerPrintID);
-
-            byte[] fp1 = await ConvertBase64ToTemplateAsync(dto.FingerPrint1);
-            byte[] fp2 = await ConvertBase64ToTemplateAsync(dto.FingerPrint2);
-            byte[] fp3 = await ConvertBase64ToTemplateAsync(dto.FingerPrint3);
-
-            if (result == null)
-            {
-                result = new FingerPrint
-                {
-                    Role = dto.Role,
-                    FingerPrint1 = fp1,
-                    FingerPrint2 = fp2,
-                    FingerPrint3 = fp3,
-                    CreatedDate = dto.CreatedDate
-                };
-                _bioContext.FingerPrint.Add(result);
-            }
-            else
-            {
-                result.Role = dto.Role;
-                result.FingerPrint1 = fp1;
-                result.FingerPrint2 = fp2;
-                result.FingerPrint3 = fp3;
-                result.CreatedDate = dto.CreatedDate;
-
-
-                _bioContext.FingerPrint.Update(result);
-            }
-
-            await _bioContext.SaveChangesAsync();
-            return new FingerPrintModel
-            {
-                FingerPrintID = result.FingerPrintID,
-                Role = result.Role,
-                FingerPrint1 = Convert.ToBase64String(result.FingerPrint1),
-                FingerPrint2 = Convert.ToBase64String(result.FingerPrint2),
-                FingerPrint3 = Convert.ToBase64String(result.FingerPrint3),
-                CreatedDate = result.CreatedDate
-            };
-
-            
-        }
         public bool DeleteByfingerprintId(int id)
         {
             var entity = _bioContext.FingerPrint.Find(id);
@@ -1033,8 +1093,86 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges();
             return true;
         }
-            
-        
+
+
+        //public IActionResult SaveFingerprint([FromBody] FingerPrintModel model)
+        //{
+        //    if (string.IsNullOrEmpty(model.FingerPrint1))
+        //        return new BadRequestObjectResult("The fingerprint field is required.");
+
+        //    try
+        //    {
+        //        // Try to decode the Base64 to validate it's correct
+        //        byte[] fingerprintData = Convert.FromBase64String(model.FingerPrint1);
+
+        //        var entity = new FingerPrint
+        //        {
+        //            FingerPrint1 = model.FingerPrint1,   // Store the Base64 string directly
+        //            CreatedDate = DateTime.Now,
+        //            Role = model.Role
+        //        };
+
+        //        _bioContext.FingerPrint.Add(entity);
+        //        _bioContext.SaveChanges();
+
+        //        return new OkObjectResult("Fingerprint saved successfully.");
+        //    }
+        //    catch (FormatException)
+        //    {
+        //        return new BadRequestObjectResult("Invalid Base64 format in fingerprint.");
+        //    }
+        //}
+
+
+        //string fingerprintTemplate = request.FingerPrint1;
+
+        //// You should now compare this fingerprint with registered templates
+        //// For example, match with stored fingerprint templates in database
+
+        //bool isMatch = MatchFingerprint(fingerprintTemplate);
+        //if (isMatch)
+        //{
+        //    // Save attendance entry
+        //    return Ok(new { success = true, message = "Attendance marked successfully." });
+        //}
+        //else
+        //{
+        //    return Unauthorized(new { success = false, message = "Fingerprint not recognized." });
+        //}
+
+
+        //private IActionResult Unauthorized(object value)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //private IActionResult Ok(object value)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //private bool MatchFingerprint(string scannedTemplate)
+        //{
+        //    // Load enrolled templates from DB and match
+        //    // You would use SecuGen SDK for template matching
+        //    return true; // simulate a match
+        //}
+
+
+
+
+        //private IActionResult BadRequest(string v)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //private IActionResult Ok(string v)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+
+
 
         #endregion
 
@@ -1487,7 +1625,138 @@ namespace GymMaintenance.DAL.Services
             await client.DisconnectAsync(true);
         }
 
-       
+        //public Payment Addpayment(Payment pymnnt)
+        //{
+        //    var candidate = _bioContext.CandidateEnrollment
+        //        .FirstOrDefault(c => c.CandidateId == pymnnt.CandiadteId);
+
+        //    if (candidate == null)
+        //    {
+        //        throw new Exception("Candidate not found.");
+        //    }
+
+        //    var Payment = _bioContext.Payment
+        //        .FirstOrDefault(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo);
+
+        //    if (Payment == null)
+        //    {
+        //        var newPayment = new Payment
+        //        {
+        //            PaymentReceiptNo = pymnnt.PaymentReceiptNo,
+        //            CandiadteId = pymnnt.CandiadteId,
+        //            Name = pymnnt.Name,
+        //            ServiceId = pymnnt.ServiceId,
+
+        //            PaymentAmount = pymnnt.PaymentAmount,
+        //            BalanceAmount = (pymnnt.BalanceAmount) - pymnnt.PaymentAmount,
+
+        //            Paymentmode = pymnnt.Paymentmode,
+        //            collectedby = pymnnt.collectedby,
+        //            IsActive = pymnnt.IsActive,
+        //            CreatedDate = pymnnt.CreatedDate,
+        //            UpdatedDate = pymnnt.UpdatedDate
+        //        };
+        //        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+        //        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+        //        _bioContext.Payment.Add(newPayment);
+        //        _bioContext.CandidateEnrollment.Update(candidate);
+        //        _bioContext.SaveChanges();
+
+        //        return newPayment;
+        //    }
+        //    else
+        //    {
+        //        Payment.CandiadteId = pymnnt.CandiadteId;
+        //        Payment.Name = pymnnt.Name;
+        //        Payment.ServiceId = pymnnt.ServiceId;
+        //        Payment.PaymentAmount = pymnnt.PaymentAmount;
+        //        Payment.BalanceAmount =( pymnnt.BalanceAmount<= pymnnt.PaymentAmount) ? pymnnt.BalanceAmount - pymnnt.PaymentAmount:"Give the correct Payment amt";
+        //        Payment.Paymentmode = pymnnt.Paymentmode;
+        //        Payment.collectedby = pymnnt.collectedby;
+        //        Payment.IsActive = pymnnt.IsActive;
+        //        Payment.UpdatedDate = pymnnt.UpdatedDate;
+        //        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+        //        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+        //        _bioContext.Payment.Update(Payment);
+
+        //        _bioContext.CandidateEnrollment.Update(candidate);
+        //        _bioContext.SaveChanges();
+        //        return Payment;
+        //    }
+        //}
+        public (Payment? payment, string message) Addpayment(Payment pymnnt)
+        {
+            var candidate = _bioContext.CandidateEnrollment
+                .FirstOrDefault(c => c.CandidateId == pymnnt.CandiadteId);
+
+            if (candidate != null)
+            {
+                if (pymnnt.PaymentAmount! > candidate.BalanceAmount)
+                {
+
+
+                    var existingPayment = _bioContext.Payment
+                        .FirstOrDefault(x => x.PaymentReceiptNo == pymnnt.PaymentReceiptNo);
+
+                    if (existingPayment == null)
+                    {
+                        var newPayment = new Payment
+                        {
+                            PaymentReceiptNo = pymnnt.PaymentReceiptNo,
+                            CandiadteId = pymnnt.CandiadteId,
+                            Name = pymnnt.Name,
+                            ServiceId = pymnnt.ServiceId,
+                            PaymentAmount = pymnnt.PaymentAmount,
+                            BalanceAmount = candidate.BalanceAmount - pymnnt.PaymentAmount,
+                            Paymentmode = pymnnt.Paymentmode,
+                            collectedby = pymnnt.collectedby,
+                            IsActive = pymnnt.IsActive,
+                            CreatedDate = DateTime.Now,
+
+                        };
+
+                        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+                        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+
+                        _bioContext.Payment.Add(newPayment);
+                        _bioContext.CandidateEnrollment.Update(candidate);
+                        _bioContext.SaveChanges();
+
+                        return (newPayment, candidate.PaymentStatus == "Complete"
+                            ? "Payment added. Balance complete."
+                            : "Payment added. Balance pending.");
+                    }
+                    else
+                    {
+                        existingPayment.CandiadteId = pymnnt.CandiadteId;
+                        existingPayment.Name = pymnnt.Name;
+                        existingPayment.ServiceId = pymnnt.ServiceId;
+                        existingPayment.PaymentAmount = pymnnt.PaymentAmount;
+                        existingPayment.BalanceAmount = candidate.BalanceAmount - pymnnt.PaymentAmount;
+                        existingPayment.Paymentmode = pymnnt.Paymentmode;
+                        existingPayment.collectedby = pymnnt.collectedby;
+                        existingPayment.IsActive = pymnnt.IsActive;
+                        existingPayment.UpdatedDate = DateTime.Now;
+
+                        candidate.BalanceAmount -= pymnnt.PaymentAmount;
+                        candidate.PaymentStatus = candidate.BalanceAmount == 0 ? "Complete" : "Pending";
+
+                        _bioContext.Payment.Update(existingPayment);
+                        _bioContext.CandidateEnrollment.Update(candidate);
+                        _bioContext.SaveChanges();
+
+                        return (existingPayment, candidate.PaymentStatus == "Complete"
+                            ? "Payment updated, Balance complete." : "Pending");
+
+                    }
+                }
+                return (null, "Candidate not found");
+            }
+            return (null, "Payment Amount Not Correct.");
+
+            
+
+        }
         public bool DeleteBypymntId(int id)
         {
             var entity = _bioContext.Payment.Find(id);
@@ -1669,8 +1938,13 @@ namespace GymMaintenance.DAL.Services
             _bioContext.SaveChanges();
             return true;
         }
-        #endregion
 
+        public List<FingerPrint> GetAllfingreprint()
+        {
+            throw new NotImplementedException();
+               
+            //thiva
+        }
         #region EquipmentEnrollment
         public EquipmentEnrollment AddEquipmentEnrollment (EquipmentEnrollment equipment)
       {
@@ -1886,8 +2160,96 @@ namespace GymMaintenance.DAL.Services
             throw new NotImplementedException();
         }
         #endregion
-                     
-                
+
+
+
+
+
+        #endregion
+
+        //#region ImageUpload
+
+
+        ////public async Task<byte[]> ConvertToBytesAsync(IFormFile file)
+        ////{
+        ////    if (file == null || file.Length == 0)
+        ////        return null;
+
+        ////    using var memoryStream = new MemoryStream();
+        ////    await file.CopyToAsync(memoryStream);
+        ////    return memoryStream.ToArray();
+        ////}
+        //public async Task<CandidateEnroll> AddOrUpdateCandidateAsync(CandidateEnroll candidate)
+        //{
+        //    var result = _bioContext.CandidateEnroll
+        //        .FirstOrDefault(c => c.CandidateId == candidate.CandidateId);
+
+        //    // Convert uploaded image to byte array
+        //    //byte[] imageData = await ConvertToBytesAsync(candidate.PictureFile);
+
+        //    if (result == null)
+        //    {
+        //        result = new CandidateEnroll
+        //        {
+        //            Name = candidate.Name,
+        //            Gender = candidate.Gender,
+        //            Weight = candidate.Weight,
+        //            Height = candidate.Height,
+        //            Waist = candidate.Waist,
+        //            BMI = candidate.BMI,
+        //            BloodGroup = candidate.BloodGroup,
+        //            Age = candidate.Age,
+        //            CurrentAddress = candidate.CurrentAddress,
+        //            PermanentAddress = candidate.PermanentAddress,
+        //            AadharNumber = candidate.AadharNumber,
+        //            MobileNumber = candidate.MobileNumber,
+        //            EmailId = candidate.EmailId,
+        //            Profession = candidate.Profession,
+        //            Picture = imageData,
+        //            FingerPrintID = candidate.FingerPrintID,
+        //            IsActive = candidate.IsActive,
+        //            CreatedDate = candidate.CreatedDate
+        //        };
+
+        //        _bioContext.CandidateEnroll.Add(result);
+        //    }
+        //    else
+        //    {
+        //        result.Name = candidate.Name;
+        //        result.Gender = candidate.Gender;
+        //        result.Weight = candidate.Weight;
+        //        result.Height = candidate.Height;
+        //        result.Waist = candidate.Waist;
+        //        result.BMI = candidate.BMI;
+        //        result.BloodGroup = candidate.BloodGroup;
+        //        result.Age = candidate.Age;
+        //        result.CurrentAddress = candidate.CurrentAddress;
+        //        result.   PermanentAddress = candidate.PermanentAddress;
+        //        result.AadharNumber = candidate.AadharNumber;
+        //        result.MobileNumber = candidate.MobileNumber;
+        //        result.EmailId = candidate.EmailId;
+        //        result.Profession = candidate.Profession;
+        //        result.FingerPrintID = candidate.FingerPrintID;
+        //        result.IsActive = candidate.IsActive;
+        //        result.CreatedDate = candidate.CreatedDate;
+
+        //        //if (imageData != null)
+        //        //{
+        //        //    result.Picture = imageData;
+        //        //}
+
+        //        _bioContext.CandidateEnroll.Update(result);
+        //    }
+
+        //    await _bioContext.SaveChangesAsync();
+        //    return result;
+        //}
+
+
+
+
+        //#endregion
+
         #region ServiceMaster
         public List<ServiceMaster> GetAllServiceMaster()
         {
@@ -2110,7 +2472,6 @@ namespace GymMaintenance.DAL.Services
         }
 
         #endregion
-
         #region audrino
 
         // Add this at the top
@@ -2203,8 +2564,12 @@ namespace GymMaintenance.DAL.Services
 
         #endregion
 
-        #region Reports
-       
+
+
+
+
+
+        #region GetPaymentReportByDate
         public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
         {
             var result = _bioContext.Payment
@@ -2225,20 +2590,16 @@ namespace GymMaintenance.DAL.Services
                 })
                 .ToList();
 
-            if (result != null && result.Count > 0)
-            {
-                return result;
-            }
-            else
-            {
-                return new List<PaymentModel>();
-            }
+            return result;
         }
-              
-               
+
+
+        #endregion
+
+        #region GetCandidateReportByDate 
         public async Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
         {
-            var result= await _bioContext.CandidateEnrollment
+            return await _bioContext.CandidateEnrollment
                 .Where(c => c.CreatedDate.Date >= fromDate.Date && c.CreatedDate.Date <= toDate.Date)
                 .Select(c => new CandidateEnrollModel
                 {
@@ -2260,20 +2621,16 @@ namespace GymMaintenance.DAL.Services
                     CreatedDate = c.CreatedDate
                 })
                 .ToListAsync();
-            if (result != null && result.Count > 0)
-            {
-                return result;
-            }
-            else
-            {
-                return new List<CandidateEnrollModel>();
-            }
         }
-       
-       
+        #endregion
+
+        #region GetAttendanceReportByDate 
+
+
+
         public async Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
         {
-            var result= await _bioContext.AttendanceTable
+            return await _bioContext.AttendanceTable
                 .Where(a => a.AttendanceDate.Date >= fromDate.Date && a.AttendanceDate.Date <= toDate.Date)
                 .Select(a => new AttendanceTableModel
                 {
@@ -2284,18 +2641,16 @@ namespace GymMaintenance.DAL.Services
                     InTime = a.InTime
                 })
                 .ToListAsync();
-            if (result != null && result.Count > 0)
-            {
-                return result;
-            }
-            else
-            {
-                return new List<AttendanceTableModel>();
-            }
         }
-            
+
+
+
+
+        #endregion
+
+        #region GetTrainerReportByDate
        
-       
+
         public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate)
         {
             var result = _bioContext.TrainerEnrollment
@@ -2491,47 +2846,10 @@ namespace GymMaintenance.DAL.Services
         ////    var imageFormat = NImageFormat.Bmp;
         ////    using var nImage = NImage.FromStream(nImageStream, imageFormat);
 
-            if (result != null && result.Count>0)
-            {
-                return result;
-            }
-            else
-            {
-                return new List<TrainerEnrollmentModel>();
-            }
-        }
-             
-        //        throw new Exception("Platform mismatch or corrupted DLL. Make sure your app targets the correct CPU architecture (x64 or x86).", badImageEx);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new Exception("Unexpected error creating NImage from memory.", ex);
-        //    }
-        //}
 
-
-
-        public bool AreFingerprintsMatching(byte[] template1, byte[] template2, int threshold = 48)
-        {
-            var subject1 = CreateSubjectFromTemplate(template1);
-            var subject2 = CreateSubjectFromTemplate(template2);
-
-            var status = _biometricClient.Verify(subject1, subject2);
-
-            if (status != NBiometricStatus.Ok || subject1.MatchingResults.Count == 0)
-                return false;
-
-            int score = subject1.MatchingResults[0].Score;
-            Console.WriteLine($"[Fingerprint Match Score] {score}");
-            return score >= threshold;
-        }
-
-        private NSubject CreateSubjectFromTemplate(byte[] template)
-        {
-            var subject = new NSubject();
-            subject.SetTemplateBuffer(new NBuffer(template));
-            return subject;
-        }
+        ////        var finger = new NFinger { Image = nImage };
+        ////        var subject = new NSubject();
+        ////        subject.Fingers.Add(finger);
 
         ////        var status = _biometricClient.CreateTemplate(subject);
         ////        if (status != NBiometricStatus.Ok)
@@ -2539,80 +2857,124 @@ namespace GymMaintenance.DAL.Services
         ////            throw new Exception($"Template extraction failed with status: {status}");
         ////        }
 
-        #region Fingerprint Verification and Attendance
+        ////        return subject.GetTemplateBuffer().ToArray();
+        ////    }
 
-        public async Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image)
-        {
-            if (string.IsNullOrWhiteSpace(base64Image))
-                return (false, "Fingerprint image is required.");
+        ////    catch (DllNotFoundException dllEx)
+        ////    {
+        ////        throw new Exception("Neurotec native DLL not found. Did you copy all native dependencies and target the right platform?", dllEx);
+        ////    }
+        ////    catch (BadImageFormatException badImageEx)
+        ////    {
+        ////        throw new Exception("Platform mismatch or corrupted DLL. Make sure your app targets the correct CPU architecture (x64 or x86).", badImageEx);
+        ////    }
+        ////    catch (Exception ex)
+        ////    {
+        ////        throw new Exception("Unexpected error creating NImage from memory.", ex);
+        ////    }
+        ////}
 
-            var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
-            var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
 
-            foreach (var record in allFingerprints)
-            {
-                if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
-                    AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
-                    AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
-                {
-                    var candidate = await _bioContext.CandidateEnrollment
-                        .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
 
-                    if (candidate == null)
-                        return (false, "Candidate not found for matched fingerprint.");
+        //public bool AreFingerprintsMatching(byte[] template1, byte[] template2, int threshold = 48)
+        //{
+        //    var subject1 = CreateSubjectFromTemplate(template1);
+        //    var subject2 = CreateSubjectFromTemplate(template2);
 
-                    var today = DateOnly.FromDateTime(DateTime.Today);
-                    bool candidateIsInactive = candidate.ToDate < today;
+        //    var status = _biometricClient.Verify(subject1, subject2);
 
-                    if (candidateIsInactive)
-                    {
-                        var activeAttendances = await _bioContext.AttendanceTable
-                            .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
-                            .ToListAsync();
+        //    if (status != NBiometricStatus.Ok || subject1.MatchingResults.Count == 0)
+        //        return false;
 
-                        foreach (var attendance in activeAttendances)
-                        {
-                            attendance.IsActive = false;
-                        }
+        //    int score = subject1.MatchingResults[0].Score;
+        //    Console.WriteLine($"[Fingerprint Match Score] {score}");
+        //    return score >= threshold;
+        //}
 
-                        if (activeAttendances.Any())
-                        {
-                            _bioContext.AttendanceTable.UpdateRange(activeAttendances);
-                            await _bioContext.SaveChangesAsync();
-                        }
-                    }
+        //private NSubject CreateSubjectFromTemplate(byte[] template)
+        //{
+        //    var subject = new NSubject();
+        //    subject.SetTemplateBuffer(new NBuffer(template));
+        //    return subject;
+        //}
 
-                    bool alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
-                        a.FingerPrintID == record.FingerPrintID &&
-                        a.AttendanceDate == DateTime.Today);
+        //#endregion
 
-                    if (alreadyMarked)
-       
+        //#region Fingerprint Verification and Attendance
 
-                    {
-                        FingerPrintID = record.FingerPrintID,
-                        CandidateId = candidate.CandidateId,
-                        CandidateName = candidate.Name,
-                        AttendanceDate = DateTime.Today,
-                        InTime = DateTime.Now.TimeOfDay,
-                        IsActive = !candidateIsInactive
-                    };
+        //public async Task<(bool success, string message)> VerifyFingerprintByImageAsync(string base64Image)
+        //{
+        //    if (string.IsNullOrWhiteSpace(base64Image))
+        //        return (false, "Fingerprint image is required.");
 
-                    _bioContext.AttendanceTable.Add(newAttendance);
-                    await _bioContext.SaveChangesAsync();
+        //    var inputTemplate = await ConvertBase64ToTemplateAsync(base64Image);
+        //    var allFingerprints = await _bioContext.FingerPrint.ToListAsync();
 
-                    return (true, candidateIsInactive
-                        ? "Attendance marked as inactive (enrollment expired)."
-                        : "Attendance marked successfully.");
-                }
-            }
+        //    foreach (var record in allFingerprints)
+        //    {
+        //        if (AreFingerprintsMatching(inputTemplate, record.FingerPrint1) ||
+        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint2) ||
+        //            AreFingerprintsMatching(inputTemplate, record.FingerPrint3))
+        //        {
+        //            var candidate = await _bioContext.CandidateEnrollment
+        //                .FirstOrDefaultAsync(c => c.FingerPrintID == record.FingerPrintID);
 
-            return (false, "Fingerprint did not match any records.");
-        }
+        //            if (candidate == null)
+        //                return (false, "Candidate not found for matched fingerprint.");
 
-        #endregion
+        //            var today = DateOnly.FromDateTime(DateTime.Today);
+        //            bool candidateIsInactive = candidate.ToDate < today;
 
-       
+        //            if (candidateIsInactive)
+        //            {
+        //                var activeAttendances = await _bioContext.AttendanceTable
+        //                    .Where(a => a.CandidateId == candidate.CandidateId && a.IsActive)
+        //                    .ToListAsync();
+
+        //                foreach (var attendance in activeAttendances)
+        //                {
+        //                    attendance.IsActive = false;
+        //                }
+
+        //                if (activeAttendances.Any())
+        //                {
+        //                    _bioContext.AttendanceTable.UpdateRange(activeAttendances);
+        //                    await _bioContext.SaveChangesAsync();
+        //                }
+        //            }
+
+        //            bool alreadyMarked = await _bioContext.AttendanceTable.AnyAsync(a =>
+        //                a.FingerPrintID == record.FingerPrintID &&
+        //                a.AttendanceDate == DateTime.Today);
+
+        //            if (alreadyMarked)
+        //                return (true, "Attendance already marked today.");
+
+        //            var newAttendance = new AttendanceTable
+        //            {
+        //                FingerPrintID = record.FingerPrintID,
+        //                CandidateId = candidate.CandidateId,
+        //                CandidateName = candidate.Name,
+        //                AttendanceDate = DateTime.Today,
+        //                InTime = DateTime.Now.TimeOfDay,
+        //                IsActive = !candidateIsInactive
+        //            };
+
+        //            _bioContext.AttendanceTable.Add(newAttendance);
+        //            await _bioContext.SaveChangesAsync();
+
+        //            return (true, candidateIsInactive
+        //                ? "Attendance marked as inactive (enrollment expired)."
+        //                : "Attendance marked successfully.");
+        //        }
+        //    }
+
+        //    return (false, "Fingerprint did not match any records.");
+        //}
+
+        //#endregion
+
+
     }
 }
 
