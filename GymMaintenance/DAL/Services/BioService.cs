@@ -2698,7 +2698,96 @@ public async Task<(bool success, string message)> VerifyAttendanceByCandidateIdA
 
         #endregion
 
+        public AttendanceTable? AddOrUpdateAttendanceUsingFP(AttendanceTableModel attendance)
+        {
+            if (string.IsNullOrWhiteSpace(attendance.FP))
+                return null;
 
+            byte[] inputFingerprintBytes;
+            try
+            {
+                inputFingerprintBytes = Convert.FromBase64String(attendance.FP);
+            }
+            catch (FormatException)
+            {
+                // Invalid Base64 input
+                return null;
+            }
+
+            // Load all fingerprints from the DB
+            var allFingerprints = _bioContext.FingerPrint.ToList();
+
+            // Match the fingerprint
+            var matchedFingerprint = allFingerprints.FirstOrDefault(fp =>
+                FingerprintsEqual(fp.FingerPrint1, inputFingerprintBytes) ||
+                FingerprintsEqual(fp.FingerPrint2, inputFingerprintBytes) ||
+                FingerprintsEqual(fp.FingerPrint3, inputFingerprintBytes));
+
+            if (matchedFingerprint == null)
+            {
+                // No match found
+                return null;
+            }
+
+            // Find candidate associated with this fingerprint
+            var candidate = _bioContext.CandidateEnrollment
+                .FirstOrDefault(c => c.FingerPrintID == matchedFingerprint.FingerPrintID);
+
+            if (candidate == null)
+            {
+                // Candidate not found for matched fingerprint
+                return null;
+            }
+
+            // Check if attendance already exists for today (optional but recommended)
+            var today = DateTime.Today;
+            bool alreadyMarked = _bioContext.AttendanceTable.Any(a =>
+                a.FingerPrintID == matchedFingerprint.FingerPrintID &&
+                a.AttendanceDate.Date == today);
+
+            if (alreadyMarked)
+            {
+                // Return null or an existing attendance record to indicate duplicate
+                return null;
+            }
+
+            // Mark new attendance
+            var newAttendance = new AttendanceTable
+            {
+                CandidateId = candidate.CandidateId,
+                CandidateName = candidate.Name,
+                FingerPrintID = matchedFingerprint.FingerPrintID,
+                AttendanceDate = today,
+                InTime = DateTime.Now.TimeOfDay,
+                IsActive = true
+            };
+
+            _bioContext.AttendanceTable.Add(newAttendance);
+            _bioContext.SaveChanges();
+
+            return newAttendance;
+        }
+
+
+        private bool FingerprintsEqual(byte[] fp1, byte[] fp2, double thresholdPercentage = 90.0)
+        {
+            if (fp1 == null || fp2 == null || fp1.Length != fp2.Length)
+                return false;
+
+            int matchCount = 0;
+
+            for (int i = 0; i < fp1.Length; i++)
+            {
+                if (fp1[i] == fp2[i])
+                {
+                    matchCount++;
+                }
+            }
+
+            double matchPercentage = (matchCount / (double)fp1.Length) * 100;
+
+            return matchPercentage >= thresholdPercentage;
+        }
     }
 }
 

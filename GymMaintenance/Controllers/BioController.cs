@@ -659,6 +659,15 @@ namespace GymMaintenance.Controllers
 
         #endregion
 
+         [HttpPost]
+ public AttendanceTable? AddOrUpdateAttendanceUsingFP(AttendanceTableModel attendance)
+ {
+     return _ibiointerface.AddOrUpdateAttendanceUsingFP(attendance);
+ }
+
+
+
+
     }
 }
  
