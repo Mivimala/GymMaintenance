@@ -37,6 +37,7 @@ namespace GymMaintenance.DAL.Services
         private readonly IMemoryCache _cache;
         private readonly SerialPort _serialPort;
         private readonly ILogger<BioService> _logger;
+
         private readonly NBiometricClient _biometricClient;
         private const string Components = "Biometrics.FingerExtraction,Biometrics.FingerMatching";
 
