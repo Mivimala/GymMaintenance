@@ -1,11 +1,15 @@
-﻿using GymMaintenance.DAL.Interface;
+﻿using Emgu.CV.Util;
+using GymMaintenance.DAL.Interface;
 using GymMaintenance.DAL.Services;
 using GymMaintenance.Data;
 using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Neurotec.Biometrics.Client;
+using Neurotec.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace GymMaintenance.Controllers
@@ -27,18 +31,36 @@ namespace GymMaintenance.Controllers
             _cache = cache;
            
         }
+        [HttpPost("match")]
+        public async Task<IActionResult> MatchFingerprint([FromBody] string probeBase64)
+        {
+            var result = await _ibiointerface.MatchAndMarkAttendanceAsync(probeBase64);
+
+            if (!result.matched)
+                return BadRequest(new { matched = false, message = result.message });
+
+            return Ok(new
+            {
+                matched = true,
+                message = result.message,
+                candidateId = result.candidateId,
+                name = result.name,
+                inTime = result.inTime
+            });
+        }
+
 
         #region imageuploadbase64
         [HttpPost]
-        public async Task<IActionResult> CreateTemplate([FromBody] Imageupload dto)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Image))
-                return BadRequest("Image is required.");
+        //public async Task<IActionResult> CreateTemplate([FromBody] Imageupload dto)
+        //{
+        //    if (string.IsNullOrWhiteSpace(dto.Image))
+        //        return BadRequest("Image is required.");
 
-            var imageBytes = await _ibiointerface.ConvertBase64ToTemplateAsync(dto.Image);
+        //    var imageBytes = await _ibiointerface.ConvertBase64ToTemplateAsync(dto.Image);
 
-            return File(imageBytes, "image/png");
-        }
+        //    return File(imageBytes, "image/png");
+        //}
 
         //[HttpPost]
         //public async Task<(bool, string)> VerifyFingerprintVim(string base64Image)

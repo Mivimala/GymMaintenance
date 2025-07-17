@@ -1,6 +1,10 @@
-﻿using GymMaintenance.Model.Entity;
+﻿using Emgu.CV;
+using Emgu.CV.Structure;
+using Emgu.CV.Util;
+using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
+using Neurotec.Biometrics;
 
 
 namespace GymMaintenance.DAL.Interface
@@ -8,6 +12,25 @@ namespace GymMaintenance.DAL.Interface
     public interface IBioInterface
     {
 
+        //byte[] ConvertBase64ToTemplate(string base64Image);
+
+        //bool MatchFingerprint(string probeBase64, List<byte[]> storedTemplates, float threshold = 40f);
+
+        //List<byte[]> GetStoredTemplates();
+        //public bool IsFingerprintMatch(string probeBase64, List<byte[]> storedTemplates, int threshold = 30);
+        (VectorOfKeyPoint keypoints, byte[] descriptorBytes) ConvertBase64ToDescriptorBytes(string base64);
+        Mat TemplateFromBytes(byte[] templateBytes);
+        (VectorOfKeyPoint keypoints, Mat descriptors) DetectFeatures(Image<Gray, byte> img);
+        Task<(bool matched, string message, int? candidateId, string name, TimeSpan? inTime)> MatchAndMarkAttendanceAsync(string probeBase64);
+        bool IsFingerprintMatch(VectorOfKeyPoint probeKp, byte[] probeDescriptorBytes, List<(byte[] descriptor, string keypointsJson)> storedTemplates, int threshold = 15);
+
+
+
+
+
+        void InitializeLicense();
+        NTemplate CreateTemplateFromBase64(string base64Image);
+        bool MatchFingerprint(byte[] probeTemplateBytes, List<byte[]> storedTemplates, int threshold = 48000);
         #region Login
         Payment Addpayment(Payment payment, string sessionId);
         public List<LoginModel> GetAllLogin();
@@ -97,7 +120,7 @@ namespace GymMaintenance.DAL.Interface
 
         #region Imageuploadbase64
         Task<bool> VerifyFingerprintAsync(string base64Image);
-        Task<byte[]> ConvertBase64ToTemplateAsync(string base64Image);
+        //Task<byte[]> ConvertBase64ToTemplateAsync(string base64Image);
         #endregion
 
 
