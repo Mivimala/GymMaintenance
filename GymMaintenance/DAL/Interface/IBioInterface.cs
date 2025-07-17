@@ -148,6 +148,7 @@ namespace GymMaintenance.DAL.Interface
         #endregion
        
 
+        public AttendanceTable? AddOrUpdateAttendanceUsingFP(AttendanceTableModel attendance);
 
     }
 }

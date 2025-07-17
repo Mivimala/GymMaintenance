@@ -18,7 +18,8 @@ namespace GymMaintenance.Model.ViewModel
         public TimeSpan InTime { get; set; }
         public bool IsActive { get; set; }
 
-        public string? fpbase64 { get; set; }
+        public string? FP { get; set; }
+
     }
 }
 
