@@ -34,6 +34,7 @@ namespace GymMaintenance.DAL.Interface
         #region Login
       
 
+
         public List<LoginModel> GetAllLogin();
         public LoginModel GetLoginById(int id);
         public Login AddTrainerlog(Login login);
