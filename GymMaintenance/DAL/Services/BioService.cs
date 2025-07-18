@@ -15,10 +15,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
 using MimeKit;
-using Neurotec.Biometrics;
-using Neurotec.Biometrics.Client;
-using Neurotec.Images;
-using Neurotec.Licensing;
+
 using SixLabors.ImageSharp;
 //using MFS100;
 using SourceAFIS;
@@ -38,7 +35,7 @@ namespace GymMaintenance.DAL.Services
         private readonly SerialPort _serialPort;
         private readonly ILogger<BioService> _logger;
 
-        private readonly NBiometricClient _biometricClient;
+       
         private const string Components = "Biometrics.FingerExtraction,Biometrics.FingerMatching";
 
 
@@ -116,66 +113,7 @@ namespace GymMaintenance.DAL.Services
 
 
 
-        public void InitializeLicense()
-        {
-            if (!NLicense.ObtainComponents("/local", 5000, Components))
-                throw new Exception("License not obtained for VeriFinger components.");
-        }
-
-
-        public NTemplate CreateTemplateFromBase64(string base64Image)
-        {
-            byte[] imageBytes = Convert.FromBase64String(base64Image);
-
-            using var image = NImage.FromMemory(imageBytes);
-
-            // Fix: Set resolution if missing
-            if (image.HorzResolution == 0 || image.VertResolution == 0)
-            {
-                image.HorzResolution = 500;
-                image.VertResolution = 500;
-            }
-
-            using var finger = new NFinger { Image = image };
-            using var subject = new NSubject();
-            subject.Fingers.Add(finger);
-
-            var status = _biometricClient.CreateTemplate(subject);
-            if (status != NBiometricStatus.Ok)
-                throw new Exception($"Template extraction failed: {status}");
-
-            return subject.GetTemplate();
-        }
-        public bool MatchFingerprint(byte[] probeTemplateBytes, List<byte[]> storedTemplates, int threshold = 48000)
-        {
-            using var probeTemplate = new NTemplate(probeTemplateBytes);
-            using var probeSubject = new NSubject();
-            probeSubject.SetTemplate(probeTemplate);
-
-            foreach (var storedTemplateBytes in storedTemplates)
-            {
-                using var candidateTemplate = new NTemplate(storedTemplateBytes);
-                using var candidateSubject = new NSubject();
-                candidateSubject.SetTemplate(candidateTemplate);
-
-                var status = _biometricClient.Verify(probeSubject, candidateSubject);
-
-                if (status == NBiometricStatus.Ok)
-                {
-                    int score = candidateSubject.MatchingResults?.FirstOrDefault()?.Score ?? 0;
-
-                    _logger.LogInformation($"Score: {score}");
-                    if (score >= threshold)
-                    {
-                        _logger.LogInformation("Fingerprint matched.");
-                        return true;
-                    }
-                }
-            }
-
-            _logger.LogInformation("No fingerprint match found.");
-            return false;
-        }
+       
 
 
 

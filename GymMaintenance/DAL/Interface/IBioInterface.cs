@@ -4,7 +4,7 @@ using Emgu.CV.Util;
 using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
-using Neurotec.Biometrics;
+
 
 
 namespace GymMaintenance.DAL.Interface
@@ -28,9 +28,7 @@ namespace GymMaintenance.DAL.Interface
 
 
 
-        void InitializeLicense();
-        NTemplate CreateTemplateFromBase64(string base64Image);
-        bool MatchFingerprint(byte[] probeTemplateBytes, List<byte[]> storedTemplates, int threshold = 48000);
+      
         #region Login
       
 
