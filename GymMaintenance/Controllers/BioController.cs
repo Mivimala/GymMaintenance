@@ -1,11 +1,16 @@
-﻿using GymMaintenance.DAL.Interface;
+﻿using Emgu.CV.Util;
+using GymMaintenance.DAL.Interface;
 using GymMaintenance.DAL.Services;
 using GymMaintenance.Data;
 using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+
+using System.Linq;
+//using Neurotec.Biometrics.Client;
+using System.Runtime.InteropServices;
 
 namespace GymMaintenance.Controllers
 {
@@ -16,19 +21,72 @@ namespace GymMaintenance.Controllers
         public readonly BioContext _ibioContext;
         public readonly IBioInterface _ibiointerface;
         private readonly IMemoryCache _cache;
-     //   private static ArduinoConnector connector = new ArduinoConnector("COM3");
+        //private readonly NBiometricClient _biometricClient;
 
-       
-
-        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)
+        public BioController(BioContext bioContext, IBioInterface bioInterface, IMemoryCache cache)//, NBiometricClient biometricClient)
         {
             _ibioContext = bioContext;
             _ibiointerface = bioInterface;
+            _ibiointerface = bioInterface;
             _cache = cache;
+           
+        }
+        [HttpPost("match")]
+        public async Task<IActionResult> MatchFingerprint([FromBody] string probeBase64)
+        {
+            var result = await _ibiointerface.MatchAndMarkAttendanceAsync(probeBase64);
+
+            if (!result.matched)
+                return BadRequest(new { matched = false, message = result.message });
+
+            return Ok(new
+            {
+                matched = true,
+                message = result.message,
+                candidateId = result.candidateId,
+                name = result.name,
+                inTime = result.inTime
+            });
+
         }
 
-        #region Login
 
+        #region imageuploadbase64
+        [HttpPost]
+        //public async Task<IActionResult> CreateTemplate([FromBody] Imageupload dto)
+        //{
+        //    if (string.IsNullOrWhiteSpace(dto.Image))
+        //        return BadRequest("Image is required.");
+
+        //    var imageBytes = await _ibiointerface.ConvertBase64ToTemplateAsync(dto.Image);
+
+        //    return File(imageBytes, "image/png");
+        //}
+
+        
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyByFingerprint([FromBody] FingerprintRequestModel request)
+        {
+            var result = await _ibiointerface.VerifyFingerprintByImageAsync(request.Base64Image);
+            return result.success ? Ok(result.message) : BadRequest(result.message);
+         }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyByCandidate([FromBody] CandidateIdRequestModel request)
+        {
+            var result = await _ibiointerface.VerifyAttendanceByCandidateIdAsync(request.CandidateId);
+            return result.success ? Ok(result.message) : BadRequest(result.message);
+        }
+       
+        #endregion
+
+        #region Login
+        [HttpPost]
+        public async Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        {
+            return await _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
+        }
         [HttpPost]
         public IActionResult Login([FromBody] LoginModel login)
         {
@@ -71,22 +129,19 @@ namespace GymMaintenance.Controllers
             return Ok();
         }
 
-        [HttpPost]
 
-        public Task<LoginModel> AuthenticateTrainerLoginAsync(string username, string password)
+        [HttpPost]
+        public (Payment? payment, string message) AddpaymentMail(Payment pymnnt, string phone)
         {
-            return _ibiointerface.AuthenticateTrainerLoginAsync(username, password);
+            return _ibiointerface.AddpaymentMail(pymnnt, phone);
         }
+        
         #endregion
 
 
         #region FingerPrint
 
-        [HttpGet]
-        public List<FingerPrintModel> GetAllfingerprint()
-        {
-            return _ibiointerface.GetAllfingerprint();
-        }
+       
 
         [HttpGet("{id:int}")]
 
@@ -98,9 +153,13 @@ namespace GymMaintenance.Controllers
         }
 
         [HttpPost]
-        public FingerPrint AddFingerPrint(FingerPrint fingerprint)
+        public async Task<ActionResult<FingerPrintModel>> AddFingerPrintAsync([FromBody] FingerPrintModel fingerprintDto)
         {
-            return _ibiointerface.AddFingerPrint(fingerprint);
+            if (fingerprintDto == null)
+                return BadRequest("Invalid fingerprint data.");
+
+            var result = await _ibiointerface.AddFingerPrintAsync(fingerprintDto);
+            return Ok(result);
         }
 
         [HttpDelete]
@@ -109,6 +168,8 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteByfingerprintId(id);
             return Ok();
         }
+
+        
         #endregion
 
         #region Payment
@@ -127,18 +188,7 @@ namespace GymMaintenance.Controllers
             return result;
         }
 
-        [HttpPost("Addpayment")]
-        public IActionResult Addpayment(
-    [FromBody] Payment pymnnt,
-    [FromHeader(Name = "X-Session-ID")] string sessionId)
-        {
-            var result = _ibiointerface.Addpayment(pymnnt, sessionId);
-
-            if (result == null)
-                return Unauthorized("Session expired or invalid");
-
-            return Ok(result);
-        }
+       
 
         [HttpDelete]
         public IActionResult DeleteBypymntId(int id)
@@ -146,6 +196,7 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteBypymntId(id);
             return Ok();
         }
+        
         #endregion
 
 
@@ -157,6 +208,20 @@ namespace GymMaintenance.Controllers
             return _ibiointerface.GetAlltrainer();
         }
 
+        [HttpGet]
+        public IActionResult SearchTrainerEnroll([FromQuery] string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return BadRequest(new { message = "Keyword is required" });
+
+            var results = _ibiointerface.SearchTrainerEnrollByName(keyword);
+
+            if (results.Count == 0)
+                return NotFound(new { message = "No equipment found" });
+
+            return Ok(results);
+        }
+
         [HttpGet("{id:int}")]
 
         public ActionResult<TrainerEnrollmentModel> GetAlltrainerbyID(int id)
@@ -166,7 +231,7 @@ namespace GymMaintenance.Controllers
             return result;
         }
 
-        [HttpPost("Addtrainer")]
+        [HttpPost]
         public TrainerEnrollment AddOrUpdateTrainer(TrainerEnrollment trainer)
         {
             return _ibiointerface.AddOrUpdateTrainer(trainer);
@@ -190,6 +255,19 @@ namespace GymMaintenance.Controllers
         {
             return _ibiointerface.GetAllcandidate();
         }
+        [HttpGet]
+        public IActionResult SearchCandidateEnroll([FromQuery] string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return BadRequest(new { message = "Keyword is required" });
+
+            var results = _ibiointerface.SearchCandidateEnrollByName(keyword);
+
+            if (results.Count == 0)
+                return NotFound(new { message = "No equipment found" });
+
+            return Ok(results);
+        }
 
         [HttpGet]
 
@@ -199,11 +277,14 @@ namespace GymMaintenance.Controllers
 
             return result;
         }
-
         [HttpPost]
-        public CandidateEnroll AddOrUpdateCandidate(CandidateEnroll candidate)
+        public ActionResult<CandidateEnrollment> AddOrUpdateCandidate([FromBody] CandidateEnrollModel candidateModel)
         {
-            return _ibiointerface.AddOrUpdateCandidate(candidate);
+            if (candidateModel == null)
+                return BadRequest("Candidate data is required.");
+
+            var result = _ibiointerface.AddOrUpdateCandidate(candidateModel);
+            return Ok(result);
         }
 
         [HttpDelete]
@@ -242,7 +323,11 @@ namespace GymMaintenance.Controllers
             var result = _ibiointerface.DeleteByattendanceId(id);
             return Ok();
         }
-
+        [HttpPost]
+        public AttendanceTable AddOrUpdateAttendanceNEW(AttendanceTableModel attendanceTableModel)
+        {
+            return _ibiointerface.AddOrUpdateAttendanceNEW(attendanceTableModel);
+        }
         #endregion
 
 
@@ -355,35 +440,160 @@ namespace GymMaintenance.Controllers
 
         #endregion
 
+        #region servicetable
+        
 
+        [HttpGet]
 
-        #region Audrino
-        //[HttpPost("led/on")]
-        //public IActionResult TurnOn()
-        //{
-        //    connector.Connect();
-        //    connector.Send("LED_ON");
-        //    return Ok("LED turned on");
-        //}
+        public List<Servicetable> GetallServicetable()
+        {
+            var result = _ibiointerface.GetallServicetable();
+            return result;
+        }
 
-        //[HttpPost("led/off")]
-        //public IActionResult TurnOff()
-        //{
-        //    connector.Send("LED_OFF");
-        //    return Ok("LED turned off");
-        //}
+       
+        [HttpGet]
+        public ActionResult<Servicetable> GetbyidServicetable(int id)
+        {
+            var result = _ibiointerface.GetbyidServicetable(id);
+            if (result == null)
+            {
+                return NotFound();
+
+            }
+            else
+            {
+                return result;
+            }
+
+        }
 
         [HttpPost]
-        public IActionResult GetAlerts( AlertModel alertModel)
+        public Servicetable AddServicetable(Servicetable servicetables)
         {
-            var result = _ibiointerface .GetAlerts(alertModel);
+            var result = _ibiointerface.AddServicetable(servicetables);
+            return result;
+        }
+
+
+
+        [HttpDelete]
+
+        public ActionResult<Servicetable> Deletebyidservicetable(int id)
+        {
+            var result = _ibiointerface.DeletebyidServicetable(id);
+
+            return result;
+        }
+
+
+        #endregion
+
+        #region packagetable
+
+        [HttpGet]
+
+        public List<Packagetable> GetAllPackagetable()
+        {
+            var result = _ibiointerface.GetallPackagetable();
+            return result;
+        }
+
+
+        [HttpGet]
+        public ActionResult<Packagetable> getbyidpackagetable(int id)
+        {
+            var result = _ibiointerface.GetbyidPackagetable(id);
+            if (result == null)
+            {
+
+                return NotFound();
+
+            }
+            else
+            {
+                return result;
+            }
+
+        }
+
+
+        [HttpPost]
+        public Packagetable AddPackagetable(Packagetable packagetable)
+        {
+            var result = _ibiointerface.AddPackagetable(packagetable);
+            return result;
+
+        }
+
+        [HttpDelete]
+
+        public ActionResult<Packagetable> Deletebyidpackagetable(int id)
+        {
+            var result = _ibiointerface.DeletebyidPackagetable(id);
+
+            return result;
+        }
+        #endregion
+
+        [HttpPost]
+        public IActionResult GetAlerts(AlertModel alertModel)
+        {
+            var result = _ibiointerface.GetAlerts(alertModel);
             return Ok(new
             {
                 message = alertModel.IsAlert ? "Buzzed for 2 seconds" : "Short buzzed",
                 result
             });
-             
+
         }
+
+
+        #region Reports
+
+               
+        
+        [HttpGet]
+
+       public List<PaymentModel> GetPaymentReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            return _ibiointerface.GetPaymentReportByDate(fromDate, toDate);
+        }
+
+        [HttpGet]
+        public async Task<List<CandidateEnrollModel>> GetCandidateReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            return await _ibiointerface.GetCandidateReportByDate(fromDate, toDate);
+
+
+        }
+        [HttpGet]
+        public async Task<List<AttendanceTableModel>> GetAttendanceReportByDate(DateTime fromDate, DateTime toDate)
+        {
+            return await _ibiointerface.GetAttendanceReportByDate(fromDate, toDate);
+
+
+        }
+
+        [HttpGet]
+        public List<TrainerEnrollmentModel> GetTrainerReportByDate(DateTime fromDate, DateTime toDate)
+        {
+
+            return _ibiointerface.GetTrainerReportByDate(fromDate, toDate);
+
+
+        }
+        #endregion
+             
+               
+
+         [HttpPost]
+ public AttendanceTable? AddOrUpdateAttendanceUsingFP(AttendanceTableModel attendance)
+ {
+     return _ibiointerface.AddOrUpdateAttendanceUsingFP(attendance);
+ }
+
+
 
 
     }
