@@ -4,7 +4,7 @@ using Emgu.CV.Util;
 using GymMaintenance.Model.Entity;
 using GymMaintenance.Model.ViewModel;
 using Microsoft.AspNetCore.Mvc;
-using Neurotec.Biometrics;
+
 
 
 namespace GymMaintenance.DAL.Interface
