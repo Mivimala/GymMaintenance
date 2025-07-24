@@ -14,6 +14,7 @@ namespace GymMaintenance.Data
 
         public DbSet<Login> Login { get; set; }
         public DbSet<FingerPrint> FingerPrint { get; set; }
+        public DbSet<FingerprintNew> FingerprintNew { get; set; }
         public DbSet<Payment> Payment { get; set; }
         public DbSet<TrainerEnrollment> TrainerEnrollment { get; set;}
         public DbSet<CandidateEnrollment> CandidateEnrollment { get; set; }
