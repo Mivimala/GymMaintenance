@@ -23,16 +23,18 @@ namespace GymMaintenance.DAL.Interface
         (VectorOfKeyPoint keypoints, Mat descriptors) DetectFeatures(Image<Gray, byte> img);
         Task<(bool matched, string message, int? candidateId, string name, TimeSpan? inTime)> MatchAndMarkAttendanceAsync(string probeBase64);
         bool IsFingerprintMatch(VectorOfKeyPoint probeKp, byte[] probeDescriptorBytes, List<(byte[] descriptor, string keypointsJson)> storedTemplates, int threshold = 15);
-
-
-
-
-
+       public List<FingerPrint> GetAllfingerprints();
         void InitializeLicense();
         NTemplate CreateTemplateFromBase64(string base64Image);
         bool MatchFingerprint(byte[] probeTemplateBytes, List<byte[]> storedTemplates, int threshold = 48000);
+
+
+
+
+        public List<FingerprintNew> GetAllfingerprintNew();
+        Task<FingerPrintModelNew> AddFingerPrint(FingerPrintModelNew dto);
         #region Login
-      
+
 
 
         public List<LoginModel> GetAllLogin();

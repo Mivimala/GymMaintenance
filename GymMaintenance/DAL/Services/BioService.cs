@@ -189,6 +189,7 @@ namespace GymMaintenance.DAL.Services
         }
 
         private Image<Gray, byte> ImageFromBase64(string base64)
+        
         {
             if (base64.StartsWith("data:image"))
             {
@@ -316,7 +317,7 @@ namespace GymMaintenance.DAL.Services
                     return (false, "Could not extract fingerprint features.", null, null, null);
 
                 var fingerprints = await _bioContext.FingerPrint.ToListAsync();
-                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                var today = DateOnly.FromDateTime(DateTime.Now);
 
                 foreach (var stored in fingerprints)
                 {
@@ -451,8 +452,156 @@ namespace GymMaintenance.DAL.Services
                 };
             }
         }
+        #endregion
 
 
+
+        #region NewFingerprint
+
+        public List<FingerprintNew> GetAllfingerprintNew()
+        {
+            var result = _bioContext.FingerprintNew.ToList();
+            if (result != null)
+            {
+                return result;
+            }
+            else
+            {
+                return new List<FingerprintNew>();
+            }
+        }
+
+        public async Task<FingerPrintModelNew> AddFingerPrint(FingerPrintModelNew dto)
+        {
+            var existing = await _bioContext.FingerprintNew
+                .FirstOrDefaultAsync(x => x.FingerPrintID == dto.FingerPrintID);
+
+            // Convert base64 → byte[]
+            var fp1 = Convert.FromBase64String(dto.FingerPrint1);
+            var fp2 = Convert.FromBase64String(dto.FingerPrint2);
+            var fp3 = Convert.FromBase64String(dto.FingerPrint3);
+
+            if (existing == null)
+            {
+                var newEntity = new FingerprintNew
+                {
+                    Role = dto.Role,
+                    FingerPrint1 = fp1,
+                    FingerPrint2 = fp2,
+                    FingerPrint3 = fp3,
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                _bioContext.FingerprintNew.Add(newEntity);
+                await _bioContext.SaveChangesAsync();
+
+                return new FingerPrintModelNew
+                {
+                    FingerPrintID = newEntity.FingerPrintID,
+                    Role = newEntity.Role,
+                    FingerPrint1 = Convert.ToBase64String(newEntity.FingerPrint1),
+                    FingerPrint2 = Convert.ToBase64String(newEntity.FingerPrint2),
+                    FingerPrint3 = Convert.ToBase64String(newEntity.FingerPrint3),
+                    CreatedDate = newEntity.CreatedDate
+                };
+            }
+            else
+            {
+                existing.Role = dto.Role;
+                existing.FingerPrint1 = fp1;
+                existing.FingerPrint2 = fp2;
+                existing.FingerPrint3 = fp3;
+                existing.CreatedDate = DateTime.UtcNow;
+
+                _bioContext.FingerprintNew.Update(existing);
+                await _bioContext.SaveChangesAsync();
+
+                return new FingerPrintModelNew
+                {
+                    FingerPrintID = existing.FingerPrintID,
+                    Role = existing.Role,
+                    FingerPrint1 = Convert.ToBase64String(existing.FingerPrint1),
+                    FingerPrint2 = Convert.ToBase64String(existing.FingerPrint2),
+                    FingerPrint3 = Convert.ToBase64String(existing.FingerPrint3),
+                    CreatedDate = existing.CreatedDate
+                };
+            }
+        }
+
+
+        #endregion
+        //#region NewFingerPrint_Model
+
+        //public bool CompareIncomingWithStoredTemplates(string base64Fingerprint)
+        //{
+        //    try
+        //    {
+        //        // Decode Base64 fingerprint from frontend
+        //        byte[] incomingTemplate = Convert.FromBase64String(base64Fingerprint);
+
+        //        // 1. Capture new fingerprint via SecuGen
+        //        byte[] fpImage = new byte[m_ImageWidth * m_ImageHeight];
+        //        byte[] capturedTemplate = new byte[400];
+        //        int timeout = 10000;
+        //        int quality = 80;
+
+        //        var error = m_FPM.GetImageEx(fpImage, timeout, pic1.Handle.ToInt32(), quality);
+        //        if (error != (int)SGFPMError.ERROR_NONE)
+        //        {
+        //            MessageBox.Show("Live capture failed. Error: " + error);
+        //            return false;
+        //        }
+
+        //        SGFPMFingerInfo fingerInfo = new SGFPMFingerInfo()
+        //        {
+        //            FingerNumber = SGFPMFingerPosition.FINGPOS_RT,
+        //            ImageQuality = (short)quality,
+        //            ImpressionType = (short)SGFPMImpressionType.IMPTYPE_LP,
+        //            ViewNumber = 1
+        //        };
+
+        //        error = m_FPM.CreateTemplate(fingerInfo, fpImage, capturedTemplate);
+        //        if (error != (int)SGFPMError.ERROR_NONE)
+        //        {
+        //            MessageBox.Show("Template creation failed. Error: " + error);
+        //            return false;
+        //        }
+
+        //        // 2. Compare captured template with incoming Base64 template
+        //        bool matched = false;
+        //        error = m_FPM.MatchTemplate(incomingTemplate, capturedTemplate, SGFPMSecurityLevel.NORMAL, ref matched);
+        //        if (error == (int)SGFPMError.ERROR_NONE && matched)
+        //        {
+        //            MessageBox.Show("Fingerprint matched with incoming template!");
+        //            return true;
+        //        }
+
+        //        // 3. Get all stored templates from DB (no user ID)
+        //        var storedTemplates = GetAllStoredFingerprintTemplates();
+        //        foreach (var stored in storedTemplates)
+        //        {
+        //            matched = false;
+        //            error = m_FPM.MatchTemplate(stored, capturedTemplate, SGFPMSecurityLevel.NORMAL, ref matched);
+        //            if (error == (int)SGFPMError.ERROR_NONE && matched)
+        //            {
+        //                MessageBox.Show("Fingerprint matched with stored record!");
+        //                return true;
+        //            }
+        //        }
+
+        //        MessageBox.Show("No match found.");
+        //        return false;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show("Error comparing fingerprints: " + ex.Message);
+        //        return false;
+        //    }
+        //}
+
+
+        //#endregion
+        #region SourceAfis
         #endregion
 
         #region ImageUploadbase64
@@ -1068,7 +1217,18 @@ namespace GymMaintenance.DAL.Services
                     CreatedDate = x.CreatedDate
                 }).ToList();
         }
-
+        public List<FingerPrint> GetAllfingerprints()
+        {
+            var result = _bioContext.FingerPrint.ToList();
+            if(result!=null)
+            {
+                return result;
+            }
+            else
+            {
+                return new List<FingerPrint>();
+            }
+        }
         public FingerPrintModel GetAllfingerprintbyID(int id)
         {    
 

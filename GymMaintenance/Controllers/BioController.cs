@@ -51,6 +51,27 @@ namespace GymMaintenance.Controllers
 
         }
 
+        [HttpPost("FP")]
+        public async Task<ActionResult<FingerPrintModelNew>> AddFingerPrint( FingerPrintModelNew fingerprintDto)
+        {
+            
+            var result = await _ibiointerface.AddFingerPrint(fingerprintDto);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        public List<FingerprintNew> GetAllfingerprintNew()
+        {
+            return _ibiointerface.GetAllfingerprintNew();
+        }
+
+
+
+        [HttpGet]
+        public List<FingerPrint> GetAllfingerprints()
+        {
+            return _ibiointerface.GetAllfingerprints();
+        }
 
         #region imageuploadbase64
         [HttpPost]
